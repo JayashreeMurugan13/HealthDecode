@@ -122,7 +122,19 @@ export default function UploadPage() {
       if (!processRes.ok) {
         const errorData = await processRes.json();
         console.error('Processing error:', errorData);
-        throw new Error(errorData.error || 'Processing failed');
+        console.log('Extracted text:', errorData.extractedText);
+        console.log('Hint:', errorData.hint);
+        
+        // Show detailed error with extracted text
+        let errorMessage = errorData.error || 'Processing failed';
+        if (errorData.extractedText) {
+          errorMessage += `\n\nExtracted text preview:\n${errorData.extractedText}`;
+        }
+        if (errorData.hint) {
+          errorMessage += `\n\n${errorData.hint}`;
+        }
+        
+        throw new Error(errorMessage);
       }
       const processDataResult = await processRes.json();
       setProcessData(processDataResult);
