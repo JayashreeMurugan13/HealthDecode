@@ -15,9 +15,8 @@ import {
   User
 } from "lucide-react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { useState } from "react";
-import { useAuth } from "@/lib/auth-context";
+import { usePathname, useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 
 const menuItems = [
@@ -32,8 +31,25 @@ const menuItems = [
 
 export function Sidebar() {
   const pathname = usePathname();
+  const router = useRouter();
   const [isCollapsed, setIsCollapsed] = useState(false);
-  const { logout, user } = useAuth();
+  const [user, setUser] = useState<any>(null);
+  
+  useEffect(() => {
+    const currentUser = localStorage.getItem('currentUser');
+    if (currentUser) {
+      try {
+        setUser(JSON.parse(currentUser));
+      } catch (error) {
+        console.error('Error parsing user:', error);
+      }
+    }
+  }, []);
+  
+  const handleLogout = () => {
+    localStorage.removeItem('currentUser');
+    router.push('/auth?mode=login');
+  };
   
   return (
     <motion.aside
@@ -117,7 +133,7 @@ export function Sidebar() {
         )}
         
         <button
-          onClick={logout}
+          onClick={handleLogout}
           className={cn(
             "flex items-center gap-3 px-4 py-3 rounded-xl text-muted-foreground hover:bg-red-50 hover:text-red-600 transition-all duration-200 w-full",
             isCollapsed && "justify-center"

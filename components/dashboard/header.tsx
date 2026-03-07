@@ -3,12 +3,23 @@
 import { motion } from "framer-motion";
 import { Bell, Search, User } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { useAuth } from "@/lib/auth-context";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 export function DashboardHeader() {
-  const { user } = useAuth();
+  const [user, setUser] = useState<any>(null);
   const [hasNotifications] = useState(true);
+  
+  useEffect(() => {
+    // Get user from localStorage
+    const currentUser = localStorage.getItem('currentUser');
+    if (currentUser) {
+      try {
+        setUser(JSON.parse(currentUser));
+      } catch (error) {
+        console.error('Error parsing user:', error);
+      }
+    }
+  }, []);
   
   return (
     <header className="h-16 bg-white border-b border-border flex items-center justify-between px-6">
@@ -58,7 +69,7 @@ export function DashboardHeader() {
             )}
           </div>
           <div className="hidden md:block">
-            <p className="font-medium text-foreground text-sm">{user?.name || "Guest"}</p>
+            <p className="font-medium text-foreground text-sm">{user?.name || "Loading..."}</p>
             <p className="text-xs text-muted-foreground">Patient</p>
           </div>
         </motion.div>

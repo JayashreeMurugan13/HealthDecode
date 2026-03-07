@@ -15,10 +15,15 @@ export default function TimelinePage() {
   
   const fetchReports = async () => {
     try {
-      const res = await fetch('/api/reports');
-      const data = await res.json();
-      if (data.success) {
-        setReports(data.reports.sort((a: any, b: any) => 
+      // Get reports from localStorage instead of API
+      const currentUser = localStorage.getItem('currentUser');
+      if (currentUser) {
+        const user = JSON.parse(currentUser);
+        const userId = user.id;
+        const key = `reports_${userId}`;
+        const storedReports = JSON.parse(localStorage.getItem(key) || '[]');
+        
+        setReports(storedReports.sort((a: any, b: any) => 
           new Date(b.uploadDate).getTime() - new Date(a.uploadDate).getTime()
         ));
       }

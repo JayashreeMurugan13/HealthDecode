@@ -27,16 +27,19 @@ export default function ReportsPage() {
   
   const fetchReports = async () => {
     try {
-      const res = await fetch('/api/reports');
-      const data = await res.json();
-      if (data.success) {
-        const formattedReports = data.reports.map((r: any) => ({
+      // Get reports from localStorage instead of API
+      const userId = getCurrentUserId();
+      if (userId) {
+        const key = `reports_${userId}`;
+        const storedReports = JSON.parse(localStorage.getItem(key) || '[]');
+        
+        const formattedReports = storedReports.map((r: any) => ({
           id: r.id,
           fileName: r.fileName,
           uploadDate: new Date(r.uploadDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-          reportType: r.reportType,
+          reportType: r.reportType || 'Blood Test',
           status: r.abnormalCount > 0 ? 'attention' : 'normal',
-          abnormalCount: r.abnormalCount,
+          abnormalCount: r.abnormalCount || 0,
         }));
         setReports(formattedReports);
       }
@@ -47,13 +50,30 @@ export default function ReportsPage() {
     }
   };
   
+  const getCurrentUserId = () => {
+    const user = localStorage.getItem('currentUser');
+    if (user) {
+      try {
+        return JSON.parse(user).id;
+      } catch (error) {
+        return null;
+      }
+    }
+    return null;
+  };
+  
   const deleteReport = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
     if (!confirm('Are you sure you want to delete this report?')) return;
     
     try {
-      const res = await fetch(`/api/reports?id=${id}`, { method: 'DELETE' });
-      if (res.ok) {
+      // Delete from localStorage
+      const userId = getCurrentUserId();
+      if (userId) {
+        const key = `reports_${userId}`;
+        const storedReports = JSON.parse(localStorage.getItem(key) || '[]');
+        const filtered = storedReports.filter((r: any) => r.id !== id);
+        localStorage.setItem(key, JSON.stringify(filtered));
         setReports(reports.filter(r => r.id !== id));
       }
     } catch (error) {

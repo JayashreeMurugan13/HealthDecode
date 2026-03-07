@@ -83,7 +83,7 @@ export default function ProfilePage() {
     return "#EF4444";
   };
   
-  const healthScore = user?.healthScore || 80;
+  const healthScore = user?.healthScore || 100;
   
   return (
     <div className="max-w-4xl mx-auto space-y-8">

@@ -22,15 +22,31 @@ export default function DashboardPage() {
   
   const fetchDashboardData = async () => {
     try {
-      const res = await fetch('/api/reports');
-      const data = await res.json();
-      if (data.success) {
-        const totalReports = data.reports.length;
-        const abnormalFindings = data.reports.reduce((sum: number, r: any) => sum + r.abnormalCount, 0);
-        let healthScore = 100;
+      // Get reports from localStorage instead of API
+      const currentUser = localStorage.getItem('currentUser');
+      if (currentUser) {
+        const user = JSON.parse(currentUser);
+        const userId = user.id;
+        const key = `reports_${userId}`;
+        const reports = JSON.parse(localStorage.getItem(key) || '[]');
+        
+        const totalReports = reports.length;
+        const abnormalFindings = reports.reduce((sum: number, r: any) => sum + (r.abnormalCount || 0), 0);
+        let healthScore = user.healthScore || 100;
         if (totalReports > 0) {
           const avgAbnormal = abnormalFindings / totalReports;
           healthScore = Math.max(50, Math.round(100 - (avgAbnormal * 10)));
+          
+          // Update user's health score in localStorage
+          user.healthScore = healthScore;
+          localStorage.setItem('currentUser', JSON.stringify(user));
+          const usersData = localStorage.getItem('users');
+          const users = usersData ? JSON.parse(usersData) : [];
+          const userIndex = users.findIndex((u: any) => u.id === userId);
+          if (userIndex !== -1) {
+            users[userIndex].healthScore = healthScore;
+            localStorage.setItem('users', JSON.stringify(users));
+          }
         }
         setStats({ totalReports, abnormalFindings, healthScore });
       }

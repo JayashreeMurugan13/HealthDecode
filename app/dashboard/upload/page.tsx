@@ -151,26 +151,85 @@ export default function UploadPage() {
         }),
       });
       
+      // Save to localStorage for current user
+      const currentUser = localStorage.getItem('currentUser');
+      if (currentUser) {
+        try {
+          const user = JSON.parse(currentUser);
+          const userId = user.id;
+          const key = `reports_${userId}`;
+          const reports = JSON.parse(localStorage.getItem(key) || '[]');
+          
+          const newReport = {
+            id: Date.now().toString(),
+            userId,
+            fileName: uploadDataResult.files[0].fileName,
+            fileUrl: uploadDataResult.files[0].fileUrl,
+            fileType: uploadDataResult.files[0].fileType,
+            uploadDate: new Date().toISOString(),
+            status: 'completed',
+            reportType: processDataResult.reportType || 'Blood Test',
+            extractedData: {
+              parameters: processDataResult.parameters,
+              radiologyFindings: processDataResult.radiologyFindings,
+              medications: processDataResult.medications,
+              clinicalFindings: processDataResult.clinicalFindings,
+            },
+            aiSummary: processDataResult.summary,
+            abnormalCount: processDataResult.abnormalCount || 0,
+          };
+          
+          reports.push(newReport);
+          localStorage.setItem(key, JSON.stringify(reports));
+        } catch (error) {
+          console.error('Error saving to localStorage:', error);
+        }
+      }
+      
       // Save health metrics from blood test parameters
       if (processDataResult.parameters && processDataResult.parameters.length > 0) {
-        for (const param of processDataResult.parameters) {
-          let metricType = null;
-          let value = null;
-          
-          if (param.parameter.toLowerCase().includes('glucose') || param.parameter.toLowerCase().includes('blood sugar')) {
-            metricType = 'blood_sugar';
-            value = parseFloat(param.result);
-          } else if (param.parameter.toLowerCase().includes('cholesterol') && param.parameter.toLowerCase().includes('total')) {
-            metricType = 'cholesterol';
-            value = parseFloat(param.result);
-          }
-          
-          if (metricType && value) {
-            await fetch('/api/health-metrics', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ type: metricType, value }),
-            });
+        const currentUser = localStorage.getItem('currentUser');
+        if (currentUser) {
+          try {
+            const user = JSON.parse(currentUser);
+            const userId = user.id;
+            const metricsKey = `health_metrics_${userId}`;
+            const metrics = JSON.parse(localStorage.getItem(metricsKey) || '[]');
+            
+            for (const param of processDataResult.parameters) {
+              let metricType = null;
+              let value = null;
+              
+              if (param.parameter.toLowerCase().includes('glucose') || param.parameter.toLowerCase().includes('blood sugar')) {
+                metricType = 'blood_sugar';
+                value = parseFloat(param.result);
+              } else if (param.parameter.toLowerCase().includes('cholesterol') && param.parameter.toLowerCase().includes('total')) {
+                metricType = 'cholesterol';
+                value = parseFloat(param.result);
+              }
+              
+              if (metricType && value) {
+                const newMetric = {
+                  id: Date.now().toString() + Math.random(),
+                  userId,
+                  type: metricType,
+                  value,
+                  date: new Date().toISOString()
+                };
+                metrics.push(newMetric);
+                
+                // Also call API
+                await fetch('/api/health-metrics', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ type: metricType, value }),
+                });
+              }
+            }
+            
+            localStorage.setItem(metricsKey, JSON.stringify(metrics));
+          } catch (error) {
+            console.error('Error saving health metrics:', error);
           }
         }
       }

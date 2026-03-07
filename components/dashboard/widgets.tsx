@@ -119,17 +119,27 @@ export function BloodSugarChart() {
   const [data, setData] = useState<any[]>([]);
   
   useEffect(() => {
-    fetch('/api/health-metrics?type=blood_sugar')
-      .then(res => res.json())
-      .then(result => {
-        if (result.success && result.metrics.length > 0) {
-          const chartData = result.metrics.map((m: any) => ({
+    // Get health metrics from localStorage
+    const currentUser = localStorage.getItem('currentUser');
+    if (currentUser) {
+      try {
+        const user = JSON.parse(currentUser);
+        const userId = user.id;
+        const key = `health_metrics_${userId}`;
+        const metrics = JSON.parse(localStorage.getItem(key) || '[]');
+        const bloodSugarMetrics = metrics.filter((m: any) => m.type === 'blood_sugar');
+        
+        if (bloodSugarMetrics.length > 0) {
+          const chartData = bloodSugarMetrics.map((m: any) => ({
             date: new Date(m.date).toLocaleDateString('en-US', { month: 'short' }),
             value: m.value,
           }));
           setData(chartData);
         }
-      });
+      } catch (error) {
+        console.error('Error loading blood sugar data:', error);
+      }
+    }
   }, []);
   
   const displayData = data.length > 0 ? data : [
@@ -186,17 +196,27 @@ export function CholesterolChart() {
   const [data, setData] = useState<any[]>([]);
   
   useEffect(() => {
-    fetch('/api/health-metrics?type=cholesterol')
-      .then(res => res.json())
-      .then(result => {
-        if (result.success && result.metrics.length > 0) {
-          const chartData = result.metrics.map((m: any) => ({
+    // Get health metrics from localStorage
+    const currentUser = localStorage.getItem('currentUser');
+    if (currentUser) {
+      try {
+        const user = JSON.parse(currentUser);
+        const userId = user.id;
+        const key = `health_metrics_${userId}`;
+        const metrics = JSON.parse(localStorage.getItem(key) || '[]');
+        const cholesterolMetrics = metrics.filter((m: any) => m.type === 'cholesterol');
+        
+        if (cholesterolMetrics.length > 0) {
+          const chartData = cholesterolMetrics.map((m: any) => ({
             date: new Date(m.date).toLocaleDateString('en-US', { month: 'short' }),
             value: m.value,
           }));
           setData(chartData);
         }
-      });
+      } catch (error) {
+        console.error('Error loading cholesterol data:', error);
+      }
+    }
   }, []);
   
   const displayData = data.length > 0 ? data : [
@@ -253,18 +273,28 @@ export function BloodPressureChart() {
   const [data, setData] = useState<any[]>([]);
   
   useEffect(() => {
-    fetch('/api/health-metrics?type=blood_pressure')
-      .then(res => res.json())
-      .then(result => {
-        if (result.success && result.metrics.length > 0) {
-          const chartData = result.metrics.map((m: any) => ({
+    // Get health metrics from localStorage
+    const currentUser = localStorage.getItem('currentUser');
+    if (currentUser) {
+      try {
+        const user = JSON.parse(currentUser);
+        const userId = user.id;
+        const key = `health_metrics_${userId}`;
+        const metrics = JSON.parse(localStorage.getItem(key) || '[]');
+        const bpMetrics = metrics.filter((m: any) => m.type === 'blood_pressure');
+        
+        if (bpMetrics.length > 0) {
+          const chartData = bpMetrics.map((m: any) => ({
             date: new Date(m.date).toLocaleDateString('en-US', { month: 'short' }),
             systolic: m.systolic,
             diastolic: m.diastolic,
           }));
           setData(chartData);
         }
-      });
+      } catch (error) {
+        console.error('Error loading blood pressure data:', error);
+      }
+    }
   }, []);
   
   const displayData = data.length > 0 ? data : [
@@ -330,13 +360,26 @@ export function LatestReportSummary() {
   const [report, setReport] = useState<any>(null);
   
   useEffect(() => {
-    fetch('/api/reports')
-      .then(res => res.json())
-      .then(result => {
-        if (result.success && result.reports.length > 0) {
-          setReport(result.reports[0]);
+    // Get latest report from localStorage
+    const currentUser = localStorage.getItem('currentUser');
+    if (currentUser) {
+      try {
+        const user = JSON.parse(currentUser);
+        const userId = user.id;
+        const key = `reports_${userId}`;
+        const reports = JSON.parse(localStorage.getItem(key) || '[]');
+        
+        if (reports.length > 0) {
+          // Sort by upload date and get the latest
+          const sortedReports = reports.sort((a: any, b: any) => 
+            new Date(b.uploadDate).getTime() - new Date(a.uploadDate).getTime()
+          );
+          setReport(sortedReports[0]);
         }
-      });
+      } catch (error) {
+        console.error('Error loading latest report:', error);
+      }
+    }
   }, []);
   
   if (!report) {
@@ -386,6 +429,16 @@ export function LatestReportSummary() {
 }
 
 export function DashboardStats({ totalReports = 0, abnormalFindings = 0 }: { totalReports?: number; abnormalFindings?: number }) {
+  const [healthScore, setHealthScore] = useState(100);
+  
+  useEffect(() => {
+    const currentUser = localStorage.getItem('currentUser');
+    if (currentUser) {
+      const user = JSON.parse(currentUser);
+      setHealthScore(user.healthScore || 100);
+    }
+  }, []);
+  
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
       <StatCard
@@ -408,7 +461,7 @@ export function DashboardStats({ totalReports = 0, abnormalFindings = 0 }: { tot
       />
       <StatCard
         title="Health Score"
-        value="80/100"
+        value={`${healthScore}/100`}
         icon={Heart}
         trend="up"
         trendValue="+5 points"

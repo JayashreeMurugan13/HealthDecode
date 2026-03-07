@@ -20,10 +20,14 @@ export default function ReportDetailsPage() {
 
   const fetchReport = async () => {
     try {
-      const res = await fetch('/api/reports');
-      const data = await res.json();
-      if (data.success) {
-        const foundReport = data.reports.find((r: any) => r.id === params.id);
+      // Get report from localStorage instead of API
+      const currentUser = localStorage.getItem('currentUser');
+      if (currentUser) {
+        const user = JSON.parse(currentUser);
+        const userId = user.id;
+        const key = `reports_${userId}`;
+        const reports = JSON.parse(localStorage.getItem(key) || '[]');
+        const foundReport = reports.find((r: any) => r.id === params.id);
         setReport(foundReport);
       }
     } catch (error) {

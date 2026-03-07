@@ -24,6 +24,7 @@ const suggestedQuestions = [
 
 const mockResponses: Record<string, string> = {
   default: "I understand your concern. As your AI health assistant, I'm here to help you understand your health better. Could you please provide more details about your question so I can give you more specific information?",
+  fever: "Fever is your body's natural response to fighting infection. Here's what you should know:\n\n**When to treat fever at home:**\n- Temperature below 103°F (39.4°C)\n- No severe symptoms\n- Able to stay hydrated\n\n**Home care:**\n- Rest and stay hydrated (water, clear fluids)\n- Take acetaminophen (Tylenol) or ibuprofen (Advil)\n- Use cool compresses on forehead\n- Wear light clothing\n- Keep room temperature comfortable\n\n**Seek immediate medical care if:**\n- Fever above 103°F (39.4°C)\n- Fever lasts more than 3 days\n- Severe headache, stiff neck, or confusion\n- Difficulty breathing\n- Persistent vomiting\n- Rash appears\n- Chest pain\n\n**For children:** Seek care if fever is above 100.4°F in infants under 3 months.\n\nStay hydrated and monitor your symptoms closely!",
   cholesterol: "High cholesterol means you have elevated levels of cholesterol in your blood, particularly LDL (bad) cholesterol. Total cholesterol above 200 mg/dL is considered borderline high, and above 240 mg/dL is high. High cholesterol increases your risk of heart disease and stroke.\n\n**To lower cholesterol:**\n- Eat heart-healthy foods (fruits, vegetables, whole grains)\n- Exercise regularly (at least 30 minutes daily)\n- Quit smoking if applicable\n- Limit saturated fats and trans fats\n- Consider omega-3 fatty acids\n\nIf lifestyle changes aren't enough, your doctor may recommend medication like statins.",
   hemoglobin: "Hemoglobin is a protein in red blood cells that carries oxygen. Low hemoglobin (anemia) can cause fatigue, weakness, and shortness of breath.\n\n**Normal ranges:**\n- Men: 13.5-17.5 g/dL\n- Women: 12.0-15.5 g/dL\n\n**To improve hemoglobin:**\n- Eat iron-rich foods (red meat, spinach, beans)\n- Include vitamin C to enhance iron absorption\n- Consider iron supplements (consult doctor first)\n- Eat folate-rich foods (leafy greens, fortified cereals)\n- Avoid calcium with iron-rich meals (inhibits absorption)\n\nIf your levels are significantly low, please consult your doctor.",
   "blood pressure": "Blood pressure is measured in two numbers: systolic (top) and diastolic (bottom).\n\n**Categories:**\n- **Normal:** Less than 120/80 mmHg\n- **Elevated:** 120-129/less than 80\n- **High Stage 1:** 130-139/80-89\n- **High Stage 2:** 140+/90+\n- **Crisis:** Above 180/120 (seek immediate care)\n\n**To maintain healthy BP:**\n- Reduce sodium intake\n- Exercise regularly\n- Maintain healthy weight\n- Limit alcohol\n- Manage stress\n- Don't smoke",
@@ -123,7 +124,9 @@ export default function ChatbotPage() {
   const getResponse = (userMessage: string): string => {
     const lowerMessage = userMessage.toLowerCase();
     
-    if (lowerMessage.includes("cholesterol")) {
+    if (lowerMessage.includes("fever") || lowerMessage.includes("temperature") || lowerMessage.includes("hot")) {
+      return mockResponses.fever;
+    } else if (lowerMessage.includes("cholesterol")) {
       return mockResponses.cholesterol;
     } else if (lowerMessage.includes("hemoglobin") || lowerMessage.includes("anemia") || lowerMessage.includes("iron")) {
       return mockResponses.hemoglobin;

@@ -9,7 +9,6 @@ import { Label } from "@/components/ui/label";
 import { Heart, Mail, Lock, User, ArrowRight, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth-context";
-import { clientAuth } from "@/lib/client-auth";
 
 // Floating Particles Background - using fixed positions to avoid hydration mismatch
 const ParticlesBackground = () => {
@@ -110,19 +109,21 @@ function AuthContent() {
           return;
         }
         
-        // Use client-side auth
-        clientAuth.signup(email, password, name);
-        router.push('/dashboard');
+        signup(email, password, name);
       } else {
-        // Use client-side auth
-        clientAuth.login(email, password);
-        router.push('/dashboard');
+        login(email, password);
       }
+      
+      // Only redirect if no error
+      setTimeout(() => {
+        router.push('/dashboard');
+      }, 100);
+      
     } catch (error: any) {
       setError(error.message);
+    } finally {
+      setIsLoading(false);
     }
-    
-    setIsLoading(false);
   };
   
   return (
