@@ -19,22 +19,29 @@ export function getVisionClient() {
 
 export async function extractTextFromImage(imageBuffer: Buffer): Promise<string> {
   try {
-    // Check if Google Cloud is configured
-    if (!process.env.GOOGLE_APPLICATION_CREDENTIALS) {
-      console.warn('Google Cloud Vision not configured, falling back to Tesseract.js');
-      return 'Google Cloud Vision not configured. Please configure credentials to use this feature.';
+    // Use Tesseract.js for OCR (works without API keys)
+    const Tesseract = await import('tesseract.js');
+    const { data: { text } } = await Tesseract.recognize(imageBuffer, 'eng', {
+      logger: m => console.log(m)
+    });
+    return text;
+  } catch (error) {
+    console.error('Tesseract OCR error:', error);
+    
+    // Try Google Vision as fallback if configured
+    if (process.env.GOOGLE_APPLICATION_CREDENTIALS) {
+      try {
+        const client = getVisionClient();
+        const [result] = await client.textDetection({
+          image: { content: imageBuffer },
+        });
+        const detections = result.textAnnotations;
+        return detections?.[0]?.description || '';
+      } catch (visionError) {
+        console.error('Google Vision API error:', visionError);
+      }
     }
     
-    const client = getVisionClient();
-    const [result] = await client.textDetection({
-      image: { content: imageBuffer },
-    });
-    
-    const detections = result.textAnnotations;
-    return detections?.[0]?.description || '';
-  } catch (error) {
-    console.error('Google Vision API error:', error);
-    console.warn('Falling back to Tesseract.js for OCR');
-    return 'Google Vision API error. Please check your credentials and try again.';
+    throw new Error('Failed to extract text from image');
   }
 }

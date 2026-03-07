@@ -230,48 +230,47 @@ export async function POST(request: NextRequest) {
         const pdfData = await pdf(dataBuffer);
         extractedText = pdfData.text;
         console.log('PDF text extracted, length:', extractedText.length);
+        console.log('First 500 chars:', extractedText.substring(0, 500));
         
-        // If PDF has no text (scanned image), use sample data for demo
+        // If PDF has minimal text, try OCR
         if (!extractedText || extractedText.trim().length < 50) {
-          console.log('PDF appears to be scanned image, using sample data for demo');
-          extractedText = `BLOOD TEST REPORT
-Hemoglobin: 14.5 g/dL (Normal: 13-17)
-RBC Count: 4.8 million/uL (Normal: 4.5-5.5)
-WBC Count: 7500 /uL (Normal: 4000-11000)
-Platelet Count: 250000 /uL (Normal: 150000-400000)
-Total Cholesterol: 185 mg/dL (Normal: <200)
-Blood Glucose: 95 mg/dL (Normal: 70-100)
-HDL Cholesterol: 55 mg/dL (Normal: >40)
-LDL Cholesterol: 110 mg/dL (Normal: <100)
-Triglycerides: 140 mg/dL (Normal: <150)`;
+          console.log('PDF appears to be scanned, attempting OCR...');
+          try {
+            extractedText = await extractTextFromImage(dataBuffer);
+            console.log('OCR successful, length:', extractedText?.length || 0);
+          } catch (ocrError) {
+            console.error('OCR failed:', ocrError);
+            return NextResponse.json({ 
+              error: 'Unable to extract text from PDF. Please ensure the PDF contains readable text or is a clear scan.',
+              success: false
+            }, { status: 400 });
+          }
         }
       } catch (pdfError) {
         console.error('PDF parsing error:', pdfError);
-        // Use sample data for demo
-        console.log('Using sample data for demo');
-        extractedText = `BLOOD TEST REPORT
-Hemoglobin: 14.5 g/dL (Normal: 13-17)
-RBC Count: 4.8 million/uL (Normal: 4.5-5.5)
-WBC Count: 7500 /uL (Normal: 4000-11000)
-Platelet Count: 250000 /uL (Normal: 150000-400000)
-Total Cholesterol: 185 mg/dL (Normal: <200)
-Blood Glucose: 95 mg/dL (Normal: 70-100)
-HDL Cholesterol: 55 mg/dL (Normal: >40)
-LDL Cholesterol: 110 mg/dL (Normal: <100)
-Triglycerides: 140 mg/dL (Normal: <150)`;
+        return NextResponse.json({ 
+          error: 'Failed to parse PDF. The file may be corrupted or password-protected.',
+          success: false
+        }, { status: 400 });
       }
     } else if (fileUrl.match(/\.(jpg|jpeg|png|gif|bmp|webp)$/i)) {
-      // Use sample data for images too
-      extractedText = `BLOOD TEST REPORT
-Hemoglobin: 14.5 g/dL (Normal: 13-17)
-RBC Count: 4.8 million/uL (Normal: 4.5-5.5)
-WBC Count: 7500 /uL (Normal: 4000-11000)
-Platelet Count: 250000 /uL (Normal: 150000-400000)
-Total Cholesterol: 185 mg/dL (Normal: <200)
-Blood Glucose: 95 mg/dL (Normal: 70-100)
-HDL Cholesterol: 55 mg/dL (Normal: >40)
-LDL Cholesterol: 110 mg/dL (Normal: <100)
-Triglycerides: 140 mg/dL (Normal: <150)`;
+      try {
+        extractedText = await extractTextFromImage(dataBuffer);
+        console.log('Image OCR successful, length:', extractedText?.length || 0);
+        
+        if (!extractedText || extractedText.trim().length < 20) {
+          return NextResponse.json({ 
+            error: 'No text detected in image. Please ensure the image is clear and contains readable text.',
+            success: false
+          }, { status: 400 });
+        }
+      } catch (imgError) {
+        console.error('Image OCR error:', imgError);
+        return NextResponse.json({ 
+          error: 'Failed to extract text from image. Please ensure the image is clear and readable.',
+          success: false
+        }, { status: 400 });
+      }
     } else {
       return NextResponse.json({ 
         error: 'Unsupported file format. Please upload PDF or image files.' 
