@@ -38,6 +38,27 @@ export default function ProfilePage() {
   const { user, updateProfile } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
   const [showAvatarPicker, setShowAvatarPicker] = useState(false);
+  const [healthScore, setHealthScore] = useState(100);
+  
+  // Calculate health score from reports
+  useState(() => {
+    const currentUser = localStorage.getItem('currentUser');
+    if (currentUser) {
+      const userData = JSON.parse(currentUser);
+      const userId = userData.id;
+      const key = `reports_${userId}`;
+      const reports = JSON.parse(localStorage.getItem(key) || '[]');
+      
+      if (reports.length > 0) {
+        const abnormalFindings = reports.reduce((sum: number, r: any) => sum + (r.abnormalCount || 0), 0);
+        const avgAbnormal = abnormalFindings / reports.length;
+        const calculatedScore = Math.max(50, Math.round(100 - (avgAbnormal * 10)));
+        setHealthScore(calculatedScore);
+      } else {
+        setHealthScore(100);
+      }
+    }
+  });
   
   const [formData, setFormData] = useState({
     name: user?.name || "",
@@ -82,8 +103,6 @@ export default function ProfilePage() {
     if (score >= 60) return "#EAB308";
     return "#EF4444";
   };
-  
-  const healthScore = user?.healthScore || 100;
   
   return (
     <div className="max-w-4xl mx-auto space-y-8">
