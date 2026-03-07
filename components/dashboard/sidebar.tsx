@@ -29,11 +29,10 @@ const menuItems = [
   { icon: User, label: "Profile", href: "/dashboard/profile" },
 ];
 
-export function Sidebar() {
+export function Sidebar({ isOpen, onClose }: { isOpen?: boolean; onClose?: () => void } = {}) {
   const pathname = usePathname();
   const router = useRouter();
   const [isCollapsed, setIsCollapsed] = useState(false);
-  const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [user, setUser] = useState<any>(null);
   
   useEffect(() => {
@@ -52,13 +51,17 @@ export function Sidebar() {
     router.push('/auth?mode=login');
   };
   
+  const handleLinkClick = () => {
+    if (onClose) onClose();
+  };
+  
   return (
     <>
       {/* Mobile Overlay */}
-      {isMobileOpen && (
+      {isOpen && (
         <div 
           className="fixed inset-0 bg-black/50 z-30 lg:hidden"
-          onClick={() => setIsMobileOpen(false)}
+          onClick={onClose}
         />
       )}
       
@@ -66,10 +69,9 @@ export function Sidebar() {
         className={cn(
           "fixed left-0 top-0 h-screen bg-white border-r border-border z-40 flex flex-col transition-all duration-300",
           isCollapsed ? "w-20" : "w-64",
-          "max-lg:translate-x-0",
-          !isMobileOpen && "max-lg:-translate-x-full"
+          !isOpen && "max-lg:-translate-x-full"
         )}
-        initial={{ x: -100, opacity: 0 }}
+        initial={false}
         animate={{ x: 0, opacity: 1 }}
         transition={{ duration: 0.3 }}
       >
@@ -103,6 +105,7 @@ export function Sidebar() {
               <li key={item.href}>
                 <Link
                   href={item.href}
+                  onClick={handleLinkClick}
                   className={cn(
                     "flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group",
                     isActive

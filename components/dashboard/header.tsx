@@ -1,11 +1,15 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Bell, Search, User } from "lucide-react";
+import { Bell, Search, User, Menu } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { useState, useEffect } from "react";
 
-export function DashboardHeader() {
+interface DashboardHeaderProps {
+  onMenuClick?: () => void;
+}
+
+export function DashboardHeader({ onMenuClick }: DashboardHeaderProps = {}) {
   const [user, setUser] = useState<any>(null);
   const [hasNotifications] = useState(true);
   
@@ -23,6 +27,14 @@ export function DashboardHeader() {
   
   return (
     <header className="h-14 sm:h-16 bg-white border-b border-border flex items-center justify-between px-4 sm:px-6">
+      {/* Mobile Menu Button */}
+      <button
+        onClick={onMenuClick}
+        className="lg:hidden w-9 h-9 flex items-center justify-center rounded-xl hover:bg-secondary transition-colors"
+      >
+        <Menu className="w-5 h-5 text-foreground" />
+      </button>
+      
       {/* Search Bar */}
       <div className="relative max-w-md flex-1 mr-2 sm:mr-0">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-muted-foreground" />
