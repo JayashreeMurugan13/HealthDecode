@@ -143,8 +143,8 @@ export function BloodSugarChart() {
   }, []);
   
   const displayData = data.length > 0 ? data : [
-    { date: "No", value: 0 },
-    { date: "Data", value: 0 },
+    { date: "Upload", value: 0 },
+    { date: "Report", value: 0 },
   ];
   
   return (
@@ -166,7 +166,7 @@ export function BloodSugarChart() {
             </defs>
             <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
             <XAxis dataKey="date" stroke="#9CA3AF" fontSize={12} />
-            <YAxis stroke="#9CA3AF" fontSize={12} domain={[80, 120]} />
+            <YAxis stroke="#9CA3AF" fontSize={12} domain={data.length > 0 ? ['auto', 'auto'] : [0, 150]} />
             <Tooltip 
               contentStyle={{ 
                 borderRadius: 12, 
@@ -178,15 +178,27 @@ export function BloodSugarChart() {
               type="monotone" 
               dataKey="value" 
               stroke="#0066FF" 
-              strokeWidth={2}
+              strokeWidth={3}
               fill="url(#bloodSugarGradient)"
+              animationDuration={1500}
+              animationEasing="ease-in-out"
             />
           </AreaChart>
         </ResponsiveContainer>
       </div>
       <div className="flex items-center justify-between mt-4 text-sm">
         <span className="text-muted-foreground">Normal Range: 70-100 mg/dL</span>
-        <span className="text-green-600 font-medium">{data.length > 0 ? 'Status: Normal' : 'No data yet'}</span>
+        {data.length > 0 ? (
+          <span className={`font-medium ${
+            data[data.length - 1].value > 100 ? 'text-orange-600' : 
+            data[data.length - 1].value < 70 ? 'text-red-600' : 
+            'text-green-600'
+          }`}>
+            Latest: {data[data.length - 1].value} mg/dL
+          </span>
+        ) : (
+          <span className="text-muted-foreground">No data yet</span>
+        )}
       </div>
     </motion.div>
   );
@@ -220,8 +232,8 @@ export function CholesterolChart() {
   }, []);
   
   const displayData = data.length > 0 ? data : [
-    { date: "No", value: 0 },
-    { date: "Data", value: 0 },
+    { date: "Upload", value: 0 },
+    { date: "Report", value: 0 },
   ];
   
   return (
@@ -243,7 +255,7 @@ export function CholesterolChart() {
             </defs>
             <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
             <XAxis dataKey="date" stroke="#9CA3AF" fontSize={12} />
-            <YAxis stroke="#9CA3AF" fontSize={12} domain={[150, 220]} />
+            <YAxis stroke="#9CA3AF" fontSize={12} domain={data.length > 0 ? ['auto', 'auto'] : [0, 250]} />
             <Tooltip 
               contentStyle={{ 
                 borderRadius: 12, 
@@ -255,15 +267,27 @@ export function CholesterolChart() {
               type="monotone" 
               dataKey="value" 
               stroke="#00B5AD" 
-              strokeWidth={2}
+              strokeWidth={3}
               fill="url(#cholesterolGradient)"
+              animationDuration={1500}
+              animationEasing="ease-in-out"
             />
           </AreaChart>
         </ResponsiveContainer>
       </div>
       <div className="flex items-center justify-between mt-4 text-sm">
         <span className="text-muted-foreground">Desirable: {"<"} 200 mg/dL</span>
-        <span className="text-yellow-600 font-medium">{data.length > 0 ? 'Status: Borderline' : 'No data yet'}</span>
+        {data.length > 0 ? (
+          <span className={`font-medium ${
+            data[data.length - 1].value >= 240 ? 'text-red-600' : 
+            data[data.length - 1].value >= 200 ? 'text-yellow-600' : 
+            'text-green-600'
+          }`}>
+            Latest: {data[data.length - 1].value} mg/dL
+          </span>
+        ) : (
+          <span className="text-muted-foreground">No data yet</span>
+        )}
       </div>
     </motion.div>
   );
@@ -298,8 +322,8 @@ export function BloodPressureChart() {
   }, []);
   
   const displayData = data.length > 0 ? data : [
-    { date: "No", systolic: 0, diastolic: 0 },
-    { date: "Data", systolic: 0, diastolic: 0 },
+    { date: "Upload", systolic: 0, diastolic: 0 },
+    { date: "Report", systolic: 0, diastolic: 0 },
   ];
   
   return (
@@ -315,7 +339,7 @@ export function BloodPressureChart() {
           <LineChart data={displayData}>
             <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
             <XAxis dataKey="date" stroke="#9CA3AF" fontSize={12} />
-            <YAxis stroke="#9CA3AF" fontSize={12} domain={[60, 150]} />
+            <YAxis stroke="#9CA3AF" fontSize={12} domain={data.length > 0 ? ['auto', 'auto'] : [0, 180]} />
             <Tooltip 
               contentStyle={{ 
                 borderRadius: 12, 
@@ -327,17 +351,23 @@ export function BloodPressureChart() {
               type="monotone" 
               dataKey="systolic" 
               stroke="#EF4444" 
-              strokeWidth={2}
-              dot={{ fill: "#EF4444", strokeWidth: 2 }}
+              strokeWidth={3}
+              dot={{ fill: "#EF4444", strokeWidth: 2, r: 5 }}
+              activeDot={{ r: 7 }}
               name="Systolic"
+              animationDuration={1500}
+              animationEasing="ease-in-out"
             />
             <Line 
               type="monotone" 
               dataKey="diastolic" 
               stroke="#0066FF" 
-              strokeWidth={2}
-              dot={{ fill: "#0066FF", strokeWidth: 2 }}
+              strokeWidth={3}
+              dot={{ fill: "#0066FF", strokeWidth: 2, r: 5 }}
+              activeDot={{ r: 7 }}
               name="Diastolic"
+              animationDuration={1500}
+              animationEasing="ease-in-out"
             />
           </LineChart>
         </ResponsiveContainer>

@@ -67,24 +67,29 @@ export function extractMedicalEntities(text: string): MedicalEntity[] {
 export function detectReportType(text: string): 'blood_test' | 'radiology' | 'prescription' | 'clinical_history' | 'unknown' {
   const lower = text.toLowerCase();
   
-  // Clinical history indicators
-  if (lower.match(/history and physical|chief complaint|history of present illness|physical examination|assessment|differential diagnosis/i)) {
-    return 'clinical_history';
+  // Blood test indicators (check first - highest priority for lab results)
+  if (lower.match(/lipid profile|cholesterol.*ldl|hdl.*cholesterol|triglycerides.*mg|hemoglobin.*g\/dl|glucose.*mg\/dl|blood test|lab report|laboratory report|serum|plasma|test.*result.*mg\/dl/i)) {
+    return 'blood_test';
   }
   
   // Radiology indicators
-  if (lower.match(/x-ray|radiograph|ct scan|mri|ultrasound|sonography|imaging|radiology|impression|findings/i)) {
+  if (lower.match(/x-ray|radiograph|ct scan|mri|ultrasound|sonography|imaging|radiology|impression.*findings/i)) {
     return 'radiology';
   }
   
   // Prescription indicators
-  if (lower.match(/prescription|rx|medication|dosage|take.*daily|tablet|capsule|syrup|dispense/i)) {
+  if (lower.match(/prescription|rx:|medication.*dosage|take.*daily.*tablet|capsule.*syrup|dispense/i)) {
     return 'prescription';
   }
   
-  // Blood test indicators
-  if (lower.match(/hemoglobin|glucose|cholesterol|blood test|lab report|serum|plasma/i)) {
-    return 'blood_test';
+  // Blood pressure report
+  if (lower.match(/blood pressure.*monitoring|mmhg.*status|morning.*avg|evening.*avg|pulse pressure|abpm|non-dipping/i)) {
+    return 'clinical_history';
+  }
+  
+  // Clinical history indicators (check last - lowest priority)
+  if (lower.match(/clinical.*history|case.*summary|patient.*history|medical.*history/i)) {
+    return 'clinical_history';
   }
   
   return 'unknown';

@@ -24,9 +24,31 @@ export function parseClinicalHistory(text: string): ClinicalFindings {
   const ccMatch = text.match(/Chief Complaint.*?:(.+?)(?=\n\n|History of Present)/is);
   if (ccMatch) findings.chiefComplaint = ccMatch[1].trim().replace(/\s+/g, ' ').substring(0, 250);
   
-  // Extract Vital Signs
-  const bpMatch = text.match(/Blood Pressure[:\s]+(\d+\/\d+)/i);
+  // Extract Vital Signs - improved patterns
+  // Extract multiple BP readings from table format
+  const morningMatch = text.match(/Morning.*?(\d+)\/(\d+)/i);
+  if (morningMatch) {
+    findings.vitalSigns['Morning BP'] = `${morningMatch[1]}/${morningMatch[2]}`;
+  }
+  
+  const eveningMatch = text.match(/Evening.*?(\d+)\/(\d+)/i);
+  if (eveningMatch) {
+    findings.vitalSigns['Evening BP'] = `${eveningMatch[1]}/${eveningMatch[2]}`;
+  }
+  
+  // General BP pattern
+  const bpMatch = text.match(/(?:Blood Pressure)[:\s]*(\d+\/\d+)/i);
   if (bpMatch) findings.vitalSigns['Blood Pressure'] = bpMatch[1];
+  
+  // Extract all BP readings
+  const bpReadings = text.match(/(\d+\/\d+)\s*(?:mmHg|mm Hg)/gi);
+  if (bpReadings && bpReadings.length > 0 && !morningMatch && !eveningMatch) {
+    findings.vitalSigns['Blood Pressure'] = bpReadings[0].replace(/mmHg|mm Hg/gi, '').trim();
+  }
+  
+  // Extract pulse pressure
+  const pulsePresMatch = text.match(/Pulse Pressure[:\s]+(\d+)/i);
+  if (pulsePresMatch) findings.vitalSigns['Pulse Pressure'] = pulsePresMatch[1] + ' mmHg';
   
   const pulseMatch = text.match(/Pulse[:\s]+(\d+)/i);
   if (pulseMatch) findings.vitalSigns['Pulse'] = pulseMatch[1];
@@ -37,12 +59,21 @@ export function parseClinicalHistory(text: string): ClinicalFindings {
   const respMatch = text.match(/Respirations[:\s]+(\d+)/i);
   if (respMatch) findings.vitalSigns['Respirations'] = respMatch[1];
   
-  // Extract Diagnosis from Assessment section
+  // Extract Diagnosis - improved patterns
+  // Look for hypertension status
+  const hypertensionMatch = text.match(/Stage \d+ Hypertension|Hypertension|Elevated.*pressure/i);
+  if (hypertensionMatch) findings.diagnosis.push(hypertensionMatch[0]);
+  
+  // Look for clinical patterns
+  const nonDippingMatch = text.match(/Non-Dipping.*pattern/i);
+  if (nonDippingMatch) findings.diagnosis.push('Non-Dipping Blood Pressure Pattern');
+  
+  // Extract from Assessment section
   const assessmentMatch = text.match(/Assessment.*?Diagnosis(.+?)(?=Plan:|$)/is);
   if (assessmentMatch) {
     const diagnosisText = assessmentMatch[1];
     const lines = diagnosisText.split('\n').filter(l => l.trim() && l.match(/^\d+\./));
-    findings.diagnosis = lines.map(l => l.replace(/^\d+\./, '').trim()).slice(0, 5);
+    findings.diagnosis.push(...lines.map(l => l.replace(/^\d+\./, '').trim()).slice(0, 5));
   }
   
   // Extract from problem list
@@ -64,11 +95,10 @@ export function parseClinicalHistory(text: string): ClinicalFindings {
     if (examText.match(/normal/i)) findings.physicalExam.push('Multiple systems examined');
   }
   
-  // Extract Medications
-  const medMatch = text.match(/Medications?:(.+?)(?=\n[A-Z]|Family History|$)/is);
+  // Extract Medications - improved
+  const medMatch = text.match(/(?:Start|Medication|Prescribe)[:\s]+([A-Z][a-z]+(?:in|ol|ide|pril|pine|statin|cillin|tan)[^\n]*)/gi);
   if (medMatch) {
-    const meds = medMatch[1].match(/[A-Z][a-z]+(?:in|ol|ide|pril|pine|statin|cillin)/g);
-    if (meds) findings.medications = [...new Set(meds)].slice(0, 5);
+    findings.medications = medMatch.map(m => m.replace(/Start|Medication|Prescribe/gi, '').trim()).slice(0, 5);
   }
   
   // Extract Allergies

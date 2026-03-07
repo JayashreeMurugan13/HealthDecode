@@ -260,19 +260,46 @@ export default function UploadPage() {
       }
       
       // Save blood pressure from clinical findings
-      if (processDataResult.clinicalFindings?.vitalSigns?.['Blood Pressure']) {
-        const bp = processDataResult.clinicalFindings.vitalSigns['Blood Pressure'];
-        const match = bp.match(/(\d+)\/(\d+)/);
-        if (match) {
-          await fetch('/api/health-metrics', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              type: 'blood_pressure',
-              systolic: parseInt(match[1]),
-              diastolic: parseInt(match[2]),
-            }),
-          });
+      if (processDataResult.clinicalFindings?.vitalSigns) {
+        const currentUser = localStorage.getItem('currentUser');
+        if (currentUser) {
+          const user = JSON.parse(currentUser);
+          const userId = user.id;
+          const metricsKey = `health_metrics_${userId}`;
+          const metrics = JSON.parse(localStorage.getItem(metricsKey) || '[]');
+          
+          const vitalSigns = processDataResult.clinicalFindings.vitalSigns;
+          
+          // Check for any BP reading (Morning BP, Evening BP, or Blood Pressure)
+          const bpKeys = Object.keys(vitalSigns).filter(k => k.toLowerCase().includes('bp') || k.toLowerCase().includes('blood pressure'));
+          
+          for (const bpKey of bpKeys) {
+            const bp = vitalSigns[bpKey];
+            const match = bp.match(/(\d+)\/(\d+)/);
+            if (match) {
+              const newMetric = {
+                id: Date.now().toString() + Math.random(),
+                userId,
+                type: 'blood_pressure',
+                systolic: parseInt(match[1]),
+                diastolic: parseInt(match[2]),
+                date: new Date().toISOString()
+              };
+              metrics.push(newMetric);
+              
+              await fetch('/api/health-metrics', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  type: 'blood_pressure',
+                  systolic: parseInt(match[1]),
+                  diastolic: parseInt(match[2]),
+                }),
+              });
+            }
+          }
+          
+          localStorage.setItem(metricsKey, JSON.stringify(metrics));
         }
       }
       
@@ -594,6 +621,78 @@ export default function UploadPage() {
               </table>
             </div>
           </motion.div>
+          ) : processData?.radiologyFindings && processData.radiologyFindings.length > 0 ? (
+          <motion.div
+            className="rounded-2xl bg-white border border-border overflow-hidden"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+          >
+            <div className="p-6 border-b border-border">
+              <h3 className="font-semibold text-foreground">Radiology Findings</h3>
+            </div>
+            <div className="p-6 space-y-4">
+              {processData.radiologyFindings.map((finding: any, index: number) => (
+                <div key={index} className={`p-4 rounded-lg border ${
+                  finding.severity === 'critical' ? 'bg-red-50 border-red-200' :
+                  finding.severity === 'severe' ? 'bg-orange-50 border-orange-200' :
+                  finding.severity === 'moderate' ? 'bg-yellow-50 border-yellow-200' :
+                  finding.severity === 'mild' ? 'bg-blue-50 border-blue-200' :
+                  'bg-green-50 border-green-200'
+                }`}>
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <h4 className="font-medium text-foreground">{finding.anatomy}</h4>
+                      <p className="text-sm text-muted-foreground mt-1">{finding.finding}</p>
+                    </div>
+                    <span className={`px-3 py-1 rounded-full text-xs font-medium ${
+                      finding.severity === 'critical' ? 'bg-red-100 text-red-700' :
+                      finding.severity === 'severe' ? 'bg-orange-100 text-orange-700' :
+                      finding.severity === 'moderate' ? 'bg-yellow-100 text-yellow-700' :
+                      finding.severity === 'mild' ? 'bg-blue-100 text-blue-700' :
+                      'bg-green-100 text-green-700'
+                    }`}>
+                      {finding.severity.toUpperCase()}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </motion.div>
+          ) : processData?.medications && processData.medications.length > 0 ? (
+          <motion.div
+            className="rounded-2xl bg-white border border-border overflow-hidden"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+          >
+            <div className="p-6 border-b border-border">
+              <h3 className="font-semibold text-foreground">Prescribed Medications</h3>
+            </div>
+            <div className="p-6 space-y-4">
+              {processData.medications.map((med: any, index: number) => (
+                <div key={index} className="p-4 rounded-lg bg-blue-50 border border-blue-200">
+                  <h4 className="font-medium text-foreground">{med.name}</h4>
+                  <div className="grid grid-cols-2 gap-4 mt-2 text-sm">
+                    <div>
+                      <span className="text-muted-foreground">Dosage:</span>
+                      <span className="ml-2 text-foreground">{med.dosage}</span>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">Frequency:</span>
+                      <span className="ml-2 text-foreground">{med.frequency}</span>
+                    </div>
+                    {med.duration && (
+                      <div>
+                        <span className="text-muted-foreground">Duration:</span>
+                        <span className="ml-2 text-foreground">{med.duration}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </motion.div>
           ) : processData?.clinicalFindings ? (
           <motion.div
             className="rounded-2xl bg-white border border-border overflow-hidden"
@@ -689,7 +788,8 @@ export default function UploadPage() {
           </motion.div>
           )}
           
-          {/* Legend */}
+          {/* Legend - Only show for blood test reports */}
+          {results.length > 0 && (
           <div className="flex items-center gap-6 text-sm">
             <div className="flex items-center gap-2">
               <div className="w-3 h-3 rounded-full bg-green-500" />
@@ -708,6 +808,7 @@ export default function UploadPage() {
               <span className="text-muted-foreground">Critical</span>
             </div>
           </div>
+          )}
           
           {/* Actions */}
           <div className="flex gap-4">

@@ -81,8 +81,8 @@ function parseBloodTestResults(text: string): ExtractedParameter[] {
       }
     }
     
-    // Cholesterol
-    if (line.match(/cholesterol.*total|total.*cholesterol|cholesterol/i) && !line.match(/hdl|ldl/i)) {
+    // Cholesterol (Total)
+    if (line.match(/cholesterol.*total|total.*cholesterol|^cholesterol\b/i) && !line.match(/hdl|ldl/i)) {
       for (const num of numbers) {
         const val = parseFloat(num);
         if (val > 50 && val < 500) {
@@ -92,8 +92,8 @@ function parseBloodTestResults(text: string): ExtractedParameter[] {
       }
     }
     
-    // HDL
-    if (line.match(/hdl/i)) {
+    // HDL (Good Cholesterol)
+    if (line.match(/hdl|good.*cholesterol/i)) {
       for (const num of numbers) {
         const val = parseFloat(num);
         if (val > 10 && val < 200) {
@@ -103,8 +103,8 @@ function parseBloodTestResults(text: string): ExtractedParameter[] {
       }
     }
     
-    // LDL
-    if (line.match(/ldl/i)) {
+    // LDL (Bad Cholesterol)
+    if (line.match(/ldl|bad.*cholesterol/i)) {
       for (const num of numbers) {
         const val = parseFloat(num);
         if (val > 10 && val < 300) {
@@ -115,7 +115,7 @@ function parseBloodTestResults(text: string): ExtractedParameter[] {
     }
     
     // Triglycerides
-    if (line.match(/triglyceride|trig\b/i)) {
+    if (line.match(/triglyceride|trig\b|tg\b/i)) {
       for (const num of numbers) {
         const val = parseFloat(num);
         if (val > 10 && val < 1000) {
@@ -342,15 +342,54 @@ export async function POST(request: NextRequest) {
       console.log('Parameters:', JSON.stringify(parameters, null, 2));
       
       if (parameters.length === 0) {
-        console.log('No parameters found');
+        console.log('No parameters found, trying alternative parsing...');
         console.log('Extracted text sample:', extractedText.substring(0, 500));
         
-        return NextResponse.json({ 
-          error: 'No blood test parameters detected. The PDF was read successfully but no recognizable parameters were found.',
-          extractedText: extractedText.substring(0, 1500),
-          hint: 'Make sure your PDF contains parameter names like: Hemoglobin, Glucose, Cholesterol, RBC, WBC, Platelets, etc.',
-          success: false
-        }, { status: 400 });
+        // Try to find any numeric values with common patterns
+        const altPatterns = [
+          /cholesterol[:\s]+(\d+)/gi,
+          /ldl[:\s]+(\d+)/gi,
+          /hdl[:\s]+(\d+)/gi,
+          /triglyceride[s]?[:\s]+(\d+)/gi,
+          /glucose[:\s]+(\d+)/gi,
+          /hemoglobin[:\s]+(\d+\.?\d*)/gi,
+        ];
+        
+        for (const pattern of altPatterns) {
+          const matches = extractedText.matchAll(pattern);
+          for (const match of matches) {
+            const paramName = match[0].split(/[:\s]/)[0].toLowerCase();
+            const value = parseFloat(match[1]);
+            
+            if (paramName.includes('cholesterol') && !paramName.includes('hdl') && !paramName.includes('ldl')) {
+              results.push(analyzeParameter('cholesterol', value));
+            } else if (paramName.includes('ldl')) {
+              results.push(analyzeParameter('ldl', value));
+            } else if (paramName.includes('hdl')) {
+              results.push(analyzeParameter('hdl', value));
+            } else if (paramName.includes('triglyceride')) {
+              results.push(analyzeParameter('triglycerides', value));
+            } else if (paramName.includes('glucose')) {
+              results.push(analyzeParameter('glucose', value));
+            } else if (paramName.includes('hemoglobin')) {
+              results.push(analyzeParameter('hemoglobin', value));
+            }
+          }
+        }
+        
+        // Remove duplicates after alternative parsing
+        parameters = results.filter((r, i, arr) => 
+          arr.findIndex(t => t.parameter === r.parameter) === i
+        );
+        
+        if (parameters.length === 0) {
+          return NextResponse.json({ 
+            error: 'No blood test parameters detected. The PDF was read successfully but no recognizable parameters were found.',
+            extractedText: extractedText.substring(0, 1500),
+            hint: 'Make sure your PDF contains parameter names like: Hemoglobin, Glucose, Cholesterol, RBC, WBC, Platelets, etc.',
+            success: false
+          }, { status: 400 });
+        }
       }
       
       if (abnormalParams.length === 0) {
