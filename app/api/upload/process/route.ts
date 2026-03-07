@@ -230,20 +230,25 @@ export async function POST(request: NextRequest) {
         const pdfData = await pdf(dataBuffer);
         extractedText = pdfData.text;
         console.log('PDF text extracted, length:', extractedText.length);
-        console.log('First 500 chars:', extractedText.substring(0, 500));
         
-        // If PDF has minimal text, try OCR
-        if (!extractedText || extractedText.trim().length < 50) {
+        // If PDF has readable text, use it
+        if (extractedText && extractedText.trim().length > 100) {
+          console.log('PDF has readable text');
+        } else {
+          // PDF is scanned image, try OCR
           console.log('PDF appears to be scanned, attempting OCR...');
           try {
             extractedText = await extractTextFromImage(dataBuffer);
             console.log('OCR successful, length:', extractedText?.length || 0);
           } catch (ocrError) {
             console.error('OCR failed:', ocrError);
-            return NextResponse.json({ 
-              error: 'Unable to extract text from PDF. Please ensure the PDF contains readable text or is a clear scan.',
-              success: false
-            }, { status: 400 });
+            // If OCR fails, still try to parse whatever text we have
+            if (!extractedText || extractedText.trim().length < 20) {
+              return NextResponse.json({ 
+                error: 'Unable to extract text from PDF. Please ensure the PDF contains readable text or upload a clear image instead.',
+                success: false
+              }, { status: 400 });
+            }
           }
         }
       } catch (pdfError) {
@@ -294,9 +299,24 @@ export async function POST(request: NextRequest) {
       const abnormalParams = parameters.filter(p => p.status !== 'normal');
       abnormalCount = abnormalParams.length;
       
+      console.log('Parsed parameters:', parameters.length);
+      console.log('Parameters:', JSON.stringify(parameters, null, 2));
+      
       if (parameters.length === 0) {
-        summary = 'No blood test parameters detected in the document.';
-      } else if (abnormalParams.length === 0) {
+        // Try more aggressive parsing
+        console.log('No parameters found, trying aggressive parsing...');
+        const lines = extractedText.split('\n');
+        console.log('Total lines:', lines.length);
+        console.log('Sample lines:', lines.slice(0, 20).join('\n'));
+        
+        return NextResponse.json({ 
+          error: 'No blood test parameters detected. Please ensure your document contains parameter names like Hemoglobin, Cholesterol, Glucose, etc. with their values.',
+          extractedText: extractedText.substring(0, 1000),
+          success: false
+        }, { status: 400 });
+      }
+      
+      if (abnormalParams.length === 0) {
         summary = 'Great news! All your blood test results are within normal ranges. Your health indicators look good. Continue maintaining a healthy lifestyle with regular exercise and a balanced diet.';
       } else {
         try {
