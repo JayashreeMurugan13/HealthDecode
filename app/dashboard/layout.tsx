@@ -45,9 +45,9 @@ export default function DashboardLayout({
   return (
     <div className="min-h-screen bg-[#F8FAFC]">
       <Sidebar />
-      <div className="ml-64 transition-all duration-300">
+      <div className="lg:ml-64 transition-all duration-300">
         <DashboardHeader />
-        <main className="p-6">{children}</main>
+        <main className="p-4 sm:p-6">{children}</main>
       </div>
     </div>
   );

@@ -143,35 +143,35 @@ function AuthContent() {
       />
       
       <motion.div
-        className="relative z-10 w-full max-w-md mx-4"
+        className="relative z-10 w-full max-w-md mx-4 px-4 sm:px-0"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
       >
         {/* Logo */}
-        <Link href="/" className="flex items-center justify-center gap-2 mb-8">
+        <Link href="/" className="flex items-center justify-center gap-2 mb-6 sm:mb-8">
           <motion.div
-            className="w-12 h-12 rounded-xl bg-[#0066FF] flex items-center justify-center"
+            className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-[#0066FF] flex items-center justify-center"
             whileHover={{ scale: 1.05, rotate: 5 }}
           >
-            <Heart className="w-6 h-6 text-white" />
+            <Heart className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
           </motion.div>
-          <span className="text-2xl font-bold text-foreground">
+          <span className="text-xl sm:text-2xl font-bold text-foreground">
             Health<span className="text-[#0066FF]">Decode</span>
           </span>
         </Link>
         
         {/* Auth Card */}
         <motion.div
-          className="glass-card p-8 rounded-3xl"
+          className="glass-card p-6 sm:p-8 rounded-2xl sm:rounded-3xl"
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.5, delay: 0.1 }}
         >
           {/* Tab Switcher */}
-          <div className="flex bg-secondary rounded-xl p-1 mb-8">
+          <div className="flex bg-secondary rounded-xl p-1 mb-6 sm:mb-8">
             <button
-              className={`flex-1 py-3 rounded-lg font-medium transition-all duration-300 ${
+              className={`flex-1 py-2.5 sm:py-3 rounded-lg font-medium text-sm sm:text-base transition-all duration-300 ${
                 mode === "login"
                   ? "bg-white text-foreground shadow-sm"
                   : "text-muted-foreground hover:text-foreground"
@@ -181,7 +181,7 @@ function AuthContent() {
               Login
             </button>
             <button
-              className={`flex-1 py-3 rounded-lg font-medium transition-all duration-300 ${
+              className={`flex-1 py-2.5 sm:py-3 rounded-lg font-medium text-sm sm:text-base transition-all duration-300 ${
                 mode === "signup"
                   ? "bg-white text-foreground shadow-sm"
                   : "text-muted-foreground hover:text-foreground"
@@ -193,7 +193,7 @@ function AuthContent() {
           </div>
           
           {/* Form */}
-          <form onSubmit={handleSubmit} className="space-y-5">
+          <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-5">
             <AnimatePresence mode="wait">
               {mode === "signup" && (
                 <motion.div
@@ -207,14 +207,14 @@ function AuthContent() {
                     Full Name
                   </Label>
                   <div className="relative">
-                    <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                    <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-muted-foreground" />
                     <Input
                       id="name"
                       type="text"
                       placeholder="John Doe"
                       value={name}
                       onChange={(e) => setName(e.target.value)}
-                      className="pl-10 h-12 rounded-xl border-border/50 focus:border-[#0066FF] focus:ring-[#0066FF]/20 transition-all"
+                      className="pl-10 h-11 sm:h-12 rounded-xl border-border/50 focus:border-[#0066FF] focus:ring-[#0066FF]/20 transition-all text-sm sm:text-base"
                     />
                   </div>
                 </motion.div>
@@ -226,7 +226,7 @@ function AuthContent() {
                 Email Address
               </Label>
               <div className="relative">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-muted-foreground" />
                 <Input
                   id="email"
                   type="email"
@@ -234,7 +234,7 @@ function AuthContent() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
-                  className="pl-10 h-12 rounded-xl border-border/50 focus:border-[#0066FF] focus:ring-[#0066FF]/20 transition-all"
+                  className="pl-10 h-11 sm:h-12 rounded-xl border-border/50 focus:border-[#0066FF] focus:ring-[#0066FF]/20 transition-all text-sm sm:text-base"
                 />
               </div>
             </div>
@@ -244,7 +244,7 @@ function AuthContent() {
                 Password
               </Label>
               <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-muted-foreground" />
                 <Input
                   id="password"
                   type="password"
@@ -252,7 +252,7 @@ function AuthContent() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
-                  className="pl-10 h-12 rounded-xl border-border/50 focus:border-[#0066FF] focus:ring-[#0066FF]/20 transition-all"
+                  className="pl-10 h-11 sm:h-12 rounded-xl border-border/50 focus:border-[#0066FF] focus:ring-[#0066FF]/20 transition-all text-sm sm:text-base"
                 />
               </div>
             </div>
@@ -270,14 +270,14 @@ function AuthContent() {
                     Confirm Password
                   </Label>
                   <div className="relative">
-                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-muted-foreground" />
                     <Input
                       id="confirmPassword"
                       type="password"
                       placeholder="Confirm your password"
                       value={confirmPassword}
                       onChange={(e) => setConfirmPassword(e.target.value)}
-                      className="pl-10 h-12 rounded-xl border-border/50 focus:border-[#0066FF] focus:ring-[#0066FF]/20 transition-all"
+                      className="pl-10 h-11 sm:h-12 rounded-xl border-border/50 focus:border-[#0066FF] focus:ring-[#0066FF]/20 transition-all text-sm sm:text-base"
                     />
                   </div>
                 </motion.div>
@@ -302,7 +302,7 @@ function AuthContent() {
             <Button
               type="submit"
               disabled={isLoading}
-              className="w-full h-12 bg-[#0066FF] hover:bg-[#0052CC] text-white rounded-xl font-medium text-base shadow-lg hover:shadow-xl transition-all duration-300 group"
+              className="w-full h-11 sm:h-12 bg-[#0066FF] hover:bg-[#0052CC] text-white rounded-xl font-medium text-sm sm:text-base shadow-lg hover:shadow-xl transition-all duration-300 group"
             >
               {isLoading ? (
                 <Loader2 className="w-5 h-5 animate-spin" />
@@ -316,7 +316,7 @@ function AuthContent() {
           </form>
           
           {/* Footer */}
-          <p className="text-center text-sm text-muted-foreground mt-6">
+          <p className="text-center text-xs sm:text-sm text-muted-foreground mt-4 sm:mt-6">
             {mode === "login" ? (
               <>
                 {"Don't have an account? "}

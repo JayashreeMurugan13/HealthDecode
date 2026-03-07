@@ -33,6 +33,7 @@ export function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [user, setUser] = useState<any>(null);
   
   useEffect(() => {
@@ -52,15 +53,26 @@ export function Sidebar() {
   };
   
   return (
-    <motion.aside
-      className={cn(
-        "fixed left-0 top-0 h-screen bg-white border-r border-border z-40 flex flex-col transition-all duration-300",
-        isCollapsed ? "w-20" : "w-64"
+    <>
+      {/* Mobile Overlay */}
+      {isMobileOpen && (
+        <div 
+          className="fixed inset-0 bg-black/50 z-30 lg:hidden"
+          onClick={() => setIsMobileOpen(false)}
+        />
       )}
-      initial={{ x: -100, opacity: 0 }}
-      animate={{ x: 0, opacity: 1 }}
-      transition={{ duration: 0.3 }}
-    >
+      
+      <motion.aside
+        className={cn(
+          "fixed left-0 top-0 h-screen bg-white border-r border-border z-40 flex flex-col transition-all duration-300",
+          isCollapsed ? "w-20" : "w-64",
+          "max-lg:translate-x-0",
+          !isMobileOpen && "max-lg:-translate-x-full"
+        )}
+        initial={{ x: -100, opacity: 0 }}
+        animate={{ x: 0, opacity: 1 }}
+        transition={{ duration: 0.3 }}
+      >
       {/* Logo */}
       <div className="p-6 border-b border-border">
         <Link href="/dashboard" className="flex items-center gap-3">
@@ -147,7 +159,7 @@ export function Sidebar() {
       {/* Collapse Button */}
       <button
         onClick={() => setIsCollapsed(!isCollapsed)}
-        className="absolute -right-3 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-white border border-border shadow-sm flex items-center justify-center hover:bg-secondary transition-colors"
+        className="absolute -right-3 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-white border border-border shadow-sm items-center justify-center hover:bg-secondary transition-colors hidden lg:flex"
       >
         {isCollapsed ? (
           <ChevronRight className="w-4 h-4 text-muted-foreground" />
@@ -156,5 +168,6 @@ export function Sidebar() {
         )}
       </button>
     </motion.aside>
+    </>
   );
 }
