@@ -9,7 +9,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: 'HealthDecode AI - Understand Your Medical Reports in Seconds',
+  title: 'HealthDecode - AI Medical Report Analysis',
   description: 'AI-powered medical report analysis with clear explanations and personalized health insights. Upload your medical reports and get instant, easy-to-understand analysis.',
   keywords: ['medical AI', 'health analytics', 'medical report analysis', 'healthcare', 'AI diagnosis'],
   authors: [{ name: 'HealthDecode AI' }],
