@@ -344,15 +344,13 @@ export async function POST(request: NextRequest) {
       console.log('Parameters:', JSON.stringify(parameters, null, 2));
       
       if (parameters.length === 0) {
-        // Try more aggressive parsing
-        console.log('No parameters found, trying aggressive parsing...');
-        const lines = extractedText.split('\n');
-        console.log('Total lines:', lines.length);
-        console.log('Sample lines:', lines.slice(0, 20).join('\n'));
+        console.log('No parameters found');
+        console.log('Extracted text sample:', extractedText.substring(0, 500));
         
         return NextResponse.json({ 
-          error: 'No blood test parameters detected. Please ensure your document contains parameter names like Hemoglobin, Cholesterol, Glucose, etc. with their values.',
-          extractedText: extractedText.substring(0, 1000),
+          error: 'No blood test parameters detected. The PDF was read successfully but no recognizable parameters were found.',
+          extractedText: extractedText.substring(0, 1500),
+          hint: 'Make sure your PDF contains parameter names like: Hemoglobin, Glucose, Cholesterol, RBC, WBC, Platelets, etc.',
           success: false
         }, { status: 400 });
       }
