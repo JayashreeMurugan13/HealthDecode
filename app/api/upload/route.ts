@@ -1,7 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { writeFile, mkdir } from 'fs/promises';
-import { join } from 'path';
-import { existsSync } from 'fs';
 
 export async function POST(request: NextRequest) {
   try {
@@ -12,25 +9,18 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'No files uploaded' }, { status: 400 });
     }
 
-    const uploadDir = join(process.cwd(), 'public', 'uploads');
-    if (!existsSync(uploadDir)) {
-      await mkdir(uploadDir, { recursive: true });
-    }
-
     const uploadedFiles = [];
 
     for (const file of files) {
       const bytes = await file.arrayBuffer();
       const buffer = Buffer.from(bytes);
       
-      const fileName = `${Date.now()}-${file.name}`;
-      const filePath = join(uploadDir, fileName);
-      
-      await writeFile(filePath, buffer);
+      // Convert to base64 for temporary storage
+      const base64 = buffer.toString('base64');
       
       uploadedFiles.push({
         fileName: file.name,
-        fileUrl: `/uploads/${fileName}`,
+        fileData: base64,
         fileType: file.type,
         size: file.size,
       });
@@ -40,8 +30,11 @@ export async function POST(request: NextRequest) {
       success: true, 
       files: uploadedFiles 
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Upload error:', error);
-    return NextResponse.json({ error: 'Upload failed' }, { status: 500 });
+    return NextResponse.json({ 
+      error: error.message || 'Upload failed',
+      details: error.toString()
+    }, { status: 500 });
   }
 }

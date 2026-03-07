@@ -1,6 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { readFile } from 'fs/promises';
-import { join } from 'path';
 import pdf from 'pdf-parse';
 import { extractTextFromImage } from '@/lib/google-vision';
 import { extractMedicalEntities, detectReportType } from '@/lib/medical-nlp';
@@ -255,18 +253,18 @@ function analyzeParameter(parameter: string, value: number): ExtractedParameter 
 
 export async function POST(request: NextRequest) {
   try {
-    const { fileUrl } = await request.json();
+    const { fileData, fileType } = await request.json();
     
-    if (!fileUrl) {
-      return NextResponse.json({ error: 'No file URL provided' }, { status: 400 });
+    if (!fileData) {
+      return NextResponse.json({ error: 'No file data provided' }, { status: 400 });
     }
 
-    const filePath = join(process.cwd(), 'public', fileUrl);
-    const dataBuffer = await readFile(filePath);
+    // Convert base64 back to buffer
+    const dataBuffer = Buffer.from(fileData, 'base64');
     
     let extractedText = '';
     
-    if (fileUrl.toLowerCase().endsWith('.pdf')) {
+    if (fileType === 'application/pdf' || fileData.startsWith('JVBER')) {
       try {
         const pdfData = await pdf(dataBuffer);
         extractedText = pdfData.text;
@@ -299,7 +297,7 @@ export async function POST(request: NextRequest) {
           success: false
         }, { status: 400 });
       }
-    } else if (fileUrl.match(/\.(jpg|jpeg|png|gif|bmp|webp)$/i)) {
+    } else if (fileType && fileType.startsWith('image/')) {
       try {
         extractedText = await extractTextFromImage(dataBuffer);
         console.log('Image OCR successful, length:', extractedText?.length || 0);

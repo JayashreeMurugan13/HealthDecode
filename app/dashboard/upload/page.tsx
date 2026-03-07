@@ -113,10 +113,23 @@ export default function UploadPage() {
       setCurrentStep(1);
       setStatus("processing");
       
+      // Convert file to base64
+      const reader = new FileReader();
+      const fileData = await new Promise<string>((resolve) => {
+        reader.onload = () => {
+          const base64 = (reader.result as string).split(',')[1];
+          resolve(base64);
+        };
+        reader.readAsDataURL(files[0]);
+      });
+      
       const processRes = await fetch('/api/upload/process', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ fileUrl: uploadDataResult.files[0].fileUrl }),
+        body: JSON.stringify({ 
+          fileData,
+          fileType: uploadDataResult.files[0].fileType 
+        }),
       });
       
       if (!processRes.ok) {
