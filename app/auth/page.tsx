@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Heart, Mail, Lock, User, ArrowRight, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth-context";
+import { clientAuth } from "@/lib/client-auth";
 
 // Floating Particles Background - using fixed positions to avoid hydration mismatch
 const ParticlesBackground = () => {
@@ -91,46 +92,34 @@ function AuthContent() {
     setError("");
     setIsLoading(true);
     
-    console.log('Form submitted:', { mode, email });
-    
-    if (mode === "signup") {
-      if (password !== confirmPassword) {
-        setError("Passwords do not match");
-        setIsLoading(false);
-        return;
-      }
-      if (password.length < 6) {
-        setError("Password must be at least 6 characters");
-        setIsLoading(false);
-        return;
-      }
-      if (!name.trim()) {
-        setError("Please enter your name");
-        setIsLoading(false);
-        return;
-      }
-      
-      console.log('Attempting signup...');
-      const result = await signup(email, password, name);
-      console.log('Signup result:', result);
-      
-      if (result.success) {
-        console.log('Signup successful, redirecting...');
-        window.location.href = '/dashboard';
+    try {
+      if (mode === "signup") {
+        if (password !== confirmPassword) {
+          setError("Passwords do not match");
+          setIsLoading(false);
+          return;
+        }
+        if (password.length < 6) {
+          setError("Password must be at least 6 characters");
+          setIsLoading(false);
+          return;
+        }
+        if (!name.trim()) {
+          setError("Please enter your name");
+          setIsLoading(false);
+          return;
+        }
+        
+        // Use client-side auth
+        clientAuth.signup(email, password, name);
+        router.push('/dashboard');
       } else {
-        setError(result.message);
+        // Use client-side auth
+        clientAuth.login(email, password);
+        router.push('/dashboard');
       }
-    } else {
-      console.log('Attempting login...');
-      const result = await login(email, password);
-      console.log('Login result:', result);
-      
-      if (result.success) {
-        console.log('Login successful, redirecting...');
-        window.location.href = '/dashboard';
-      } else {
-        setError(result.message);
-      }
+    } catch (error: any) {
+      setError(error.message);
     }
     
     setIsLoading(false);
