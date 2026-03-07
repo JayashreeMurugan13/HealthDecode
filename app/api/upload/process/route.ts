@@ -18,155 +18,196 @@ interface ExtractedParameter {
 
 function parseBloodTestResults(text: string): ExtractedParameter[] {
   const results: ExtractedParameter[] = [];
-  const lines = text.split('\n').map(l => l.trim());
+  const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+  
+  console.log('Parsing text, total lines:', lines.length);
+  
+  // More flexible pattern matching
+  const fullText = text.toLowerCase();
   
   for (let i = 0; i < lines.length; i++) {
-    const line = lines[i];
-    const nextLine = lines[i + 1] || '';
-    const next2Line = lines[i + 2] || '';
+    const line = lines[i].toLowerCase();
+    const nextLine = (lines[i + 1] || '').toLowerCase();
+    const combinedLine = line + ' ' + nextLine;
     
-    // Hemoglobin
-    if (line.match(/^Hemoglobin$/i)) {
-      const match = nextLine.match(/([\d.]+)/);
-      if (match) {
-        const val = parseFloat(match[1]);
-        if (val > 0 && val < 25) results.push(analyzeParameter('hemoglobin', val));
-      }
-    } else if (line.match(/hemoglobin/i)) {
-      const match = line.match(/([\d.]+)/);
-      if (match) {
-        const val = parseFloat(match[1]);
-        if (val > 0 && val < 25) results.push(analyzeParameter('hemoglobin', val));
+    // Extract all numbers from the line
+    const numbers = combinedLine.match(/\b\d+\.?\d*\b/g) || [];
+    
+    // Hemoglobin - multiple variations
+    if (line.match(/h(a)?emoglobin|hb\b|hgb/i)) {
+      for (const num of numbers) {
+        const val = parseFloat(num);
+        if (val > 5 && val < 25) {
+          results.push(analyzeParameter('hemoglobin', val));
+          break;
+        }
       }
     }
     
-    // RBC Count
-    if (line.match(/^RBC Count$/i) || line.match(/RBC.*Count/i)) {
-      const match = (nextLine + ' ' + next2Line).match(/([\d.]+)/);
-      if (match) {
-        const val = parseFloat(match[1]);
-        if (val > 0 && val < 10) results.push(analyzeParameter('rbc', val));
+    // RBC
+    if (line.match(/rbc|red.*blood.*cell|erythrocyte/i)) {
+      for (const num of numbers) {
+        const val = parseFloat(num);
+        if (val > 2 && val < 10) {
+          results.push(analyzeParameter('rbc', val));
+          break;
+        }
       }
     }
     
     // WBC/TLC
-    if (line.match(/Total.*Leukocyte|TLC|WBC.*Count/i)) {
-      const match = (line + ' ' + nextLine + ' ' + next2Line).match(/([\d.]+)/);
-      if (match) {
-        const val = parseFloat(match[1]);
-        if (val > 0 && val < 50) results.push(analyzeParameter('wbc', val * 1000));
+    if (line.match(/wbc|white.*blood.*cell|leukocyte|tlc|total.*leukocyte/i)) {
+      for (const num of numbers) {
+        const val = parseFloat(num);
+        if (val > 1 && val < 50) {
+          results.push(analyzeParameter('wbc', val * 1000));
+          break;
+        } else if (val > 1000 && val < 50000) {
+          results.push(analyzeParameter('wbc', val));
+          break;
+        }
       }
     }
     
-    // Platelet Count
-    if (line.match(/platelet/i)) {
-      const match = (line + ' ' + nextLine).match(/([\d.]+)/);
-      if (match) {
-        const val = parseFloat(match[1]);
-        if (val > 1000 && val < 1000000) results.push(analyzeParameter('platelet', val));
+    // Platelet
+    if (line.match(/platelet|plt\b/i)) {
+      for (const num of numbers) {
+        const val = parseFloat(num);
+        if (val > 50 && val < 1000) {
+          results.push(analyzeParameter('platelet', val * 1000));
+          break;
+        } else if (val > 50000 && val < 1000000) {
+          results.push(analyzeParameter('platelet', val));
+          break;
+        }
       }
     }
     
-    // Total Cholesterol
-    if (line.match(/cholesterol.*total|total.*cholesterol/i)) {
-      const match = (line + ' ' + nextLine).match(/([\d.]+)/);
-      if (match) {
-        const val = parseFloat(match[1]);
-        if (val > 50 && val < 500) results.push(analyzeParameter('cholesterol', val));
+    // Cholesterol
+    if (line.match(/cholesterol.*total|total.*cholesterol|cholesterol/i) && !line.match(/hdl|ldl/i)) {
+      for (const num of numbers) {
+        const val = parseFloat(num);
+        if (val > 50 && val < 500) {
+          results.push(analyzeParameter('cholesterol', val));
+          break;
+        }
       }
     }
     
-    // HDL Cholesterol
-    if (line.match(/HDL/i) && !line.match(/LDL/i)) {
-      const match = (line + ' ' + nextLine).match(/([\d.]+)/);
-      if (match) {
-        const val = parseFloat(match[1]);
-        if (val > 10 && val < 200) results.push(analyzeParameter('hdl', val));
+    // HDL
+    if (line.match(/hdl/i)) {
+      for (const num of numbers) {
+        const val = parseFloat(num);
+        if (val > 10 && val < 200) {
+          results.push(analyzeParameter('hdl', val));
+          break;
+        }
       }
     }
     
-    // LDL Cholesterol
-    if (line.match(/LDL/i)) {
-      const match = (line + ' ' + nextLine).match(/([\d.]+)/);
-      if (match) {
-        const val = parseFloat(match[1]);
-        if (val > 10 && val < 300) results.push(analyzeParameter('ldl', val));
+    // LDL
+    if (line.match(/ldl/i)) {
+      for (const num of numbers) {
+        const val = parseFloat(num);
+        if (val > 10 && val < 300) {
+          results.push(analyzeParameter('ldl', val));
+          break;
+        }
       }
     }
     
     // Triglycerides
-    if (line.match(/triglyceride/i)) {
-      const match = (line + ' ' + nextLine).match(/([\d.]+)/);
-      if (match) {
-        const val = parseFloat(match[1]);
-        if (val > 10 && val < 1000) results.push(analyzeParameter('triglycerides', val));
+    if (line.match(/triglyceride|trig\b/i)) {
+      for (const num of numbers) {
+        const val = parseFloat(num);
+        if (val > 10 && val < 1000) {
+          results.push(analyzeParameter('triglycerides', val));
+          break;
+        }
       }
     }
     
-    // Glucose
-    if (line.match(/glucose|blood.*sugar|FBS/i)) {
-      const match = (line + ' ' + nextLine).match(/([\d.]+)/);
-      if (match) {
-        const val = parseFloat(match[1]);
-        if (val > 30 && val < 400) results.push(analyzeParameter('glucose', val));
+    // Glucose/Sugar
+    if (line.match(/glucose|blood.*sugar|fbs|fasting.*sugar|sugar.*fasting/i)) {
+      for (const num of numbers) {
+        const val = parseFloat(num);
+        if (val > 30 && val < 400) {
+          results.push(analyzeParameter('glucose', val));
+          break;
+        }
       }
     }
     
     // HbA1c
-    if (line.match(/HbA1c|A1C/i)) {
-      const match = (line + ' ' + nextLine).match(/([\d.]+)/);
-      if (match) {
-        const val = parseFloat(match[1]);
-        if (val > 3 && val < 15) results.push(analyzeParameter('hba1c', val));
+    if (line.match(/hba1c|a1c|glycated|glycosylated/i)) {
+      for (const num of numbers) {
+        const val = parseFloat(num);
+        if (val > 3 && val < 15) {
+          results.push(analyzeParameter('hba1c', val));
+          break;
+        }
       }
     }
     
     // Creatinine
     if (line.match(/creatinine/i)) {
-      const match = (line + ' ' + nextLine).match(/([\d.]+)/);
-      if (match) {
-        const val = parseFloat(match[1]);
-        if (val > 0.1 && val < 10) results.push(analyzeParameter('creatinine', val));
+      for (const num of numbers) {
+        const val = parseFloat(num);
+        if (val > 0.1 && val < 10) {
+          results.push(analyzeParameter('creatinine', val));
+          break;
+        }
       }
     }
     
     // Urea/BUN
-    if (line.match(/\burea\b|BUN/i)) {
-      const match = (line + ' ' + nextLine).match(/([\d.]+)/);
-      if (match) {
-        const val = parseFloat(match[1]);
-        if (val > 5 && val < 100) results.push(analyzeParameter('urea', val));
+    if (line.match(/\burea\b|bun\b|blood.*urea/i)) {
+      for (const num of numbers) {
+        const val = parseFloat(num);
+        if (val > 5 && val < 100) {
+          results.push(analyzeParameter('urea', val));
+          break;
+        }
       }
     }
     
     // ALT/SGPT
-    if (line.match(/ALT|SGPT/i)) {
-      const match = (line + ' ' + nextLine).match(/([\d.]+)/);
-      if (match) {
-        const val = parseFloat(match[1]);
-        if (val > 5 && val < 500) results.push(analyzeParameter('alt', val));
+    if (line.match(/\balt\b|sgpt/i)) {
+      for (const num of numbers) {
+        const val = parseFloat(num);
+        if (val > 5 && val < 500) {
+          results.push(analyzeParameter('alt', val));
+          break;
+        }
       }
     }
     
     // AST/SGOT
-    if (line.match(/AST|SGOT/i)) {
-      const match = (line + ' ' + nextLine).match(/([\d.]+)/);
-      if (match) {
-        const val = parseFloat(match[1]);
-        if (val > 5 && val < 500) results.push(analyzeParameter('ast', val));
+    if (line.match(/\bast\b|sgot/i)) {
+      for (const num of numbers) {
+        const val = parseFloat(num);
+        if (val > 5 && val < 500) {
+          results.push(analyzeParameter('ast', val));
+          break;
+        }
       }
     }
     
     // TSH
-    if (line.match(/\bTSH\b/i)) {
-      const match = (line + ' ' + nextLine).match(/([\d.]+)/);
-      if (match) {
-        const val = parseFloat(match[1]);
-        if (val > 0.1 && val < 20) results.push(analyzeParameter('tsh', val));
+    if (line.match(/\btsh\b|thyroid.*stimulating/i)) {
+      for (const num of numbers) {
+        const val = parseFloat(num);
+        if (val > 0.01 && val < 20) {
+          results.push(analyzeParameter('tsh', val));
+          break;
+        }
       }
     }
   }
-
+  
+  console.log('Found parameters:', results.length);
+  
+  // Remove duplicates
   return results.filter((r, i, arr) => 
     arr.findIndex(t => t.parameter === r.parameter) === i
   );
