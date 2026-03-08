@@ -5,12 +5,15 @@ A real, working medical report analysis platform with AI-powered features.
 ## Features
 
 ✅ **Real File Upload** - Upload PDF and image medical reports
-✅ **OCR Processing** - Extract text from reports using Tesseract.js
+✅ **PDF Text Extraction** - Extract text from PDF reports
+✅ **Image OCR** - Extract text from images using Tesseract.js (browser-based)
+✅ **OCR Processing** - Extract text from scanned PDFs (requires Google Vision API)
 ✅ **AI Analysis** - Analyze blood test results automatically
-✅ **AI Chatbot** - Ask health questions with OpenAI integration
+✅ **AI Chatbot** - Ask health questions with Groq AI integration
 ✅ **Report Storage** - Store and retrieve uploaded reports
 ✅ **Health Metrics** - Track blood sugar, cholesterol, and blood pressure
 ✅ **Interactive Charts** - Visualize health data with Recharts
+✅ **3D Body Diagnosis** - Interactive 3D model for symptom assessment
 
 ## Setup Instructions
 
@@ -27,20 +30,25 @@ pnpm install
 Create a `.env.local` file in the root directory:
 
 ```env
-# OpenAI API (Required for AI chatbot)
-OPENAI_API_KEY=your_openai_api_key_here
+# Groq API (Required for AI chatbot and analysis)
+GROQ_API_KEY=your_groq_api_key_here
 
 # Optional: Database URL (for production)
 DATABASE_URL=postgresql://user:password@localhost:5432/medical_db
+
+# Optional: Google Cloud Vision API (for image OCR)
+GOOGLE_APPLICATION_CREDENTIALS=./google-credentials.json
+GOOGLE_CLOUD_PROJECT_ID=your_project_id
 ```
 
-### 3. Get OpenAI API Key (Optional but Recommended)
+### 3. Get Groq API Key (Free & Required)
 
-1. Go to https://platform.openai.com/api-keys
-2. Create a new API key
-3. Add it to `.env.local`
+1. Go to https://console.groq.com/
+2. Sign up for a free account
+3. Create a new API key
+4. Add it to `.env.local` as `GROQ_API_KEY`
 
-**Note:** The app will work without OpenAI API key using fallback responses, but AI features will be limited.
+**Note:** Groq API is FREE and provides fast AI responses for chatbot and report analysis.
 
 ### 4. Run Development Server
 

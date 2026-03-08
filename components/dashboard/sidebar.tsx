@@ -12,7 +12,8 @@ import {
   LogOut,
   ChevronLeft,
   ChevronRight,
-  User
+  User,
+  TrendingUp
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -23,6 +24,7 @@ const menuItems = [
   { icon: LayoutDashboard, label: "Dashboard", href: "/dashboard" },
   { icon: Upload, label: "Upload Report", href: "/dashboard/upload" },
   { icon: FileText, label: "My Reports", href: "/dashboard/reports" },
+  { icon: TrendingUp, label: "Health Trends", href: "/dashboard/trends" },
   { icon: Clock, label: "Health Timeline", href: "/dashboard/timeline" },
   { icon: UserIcon, label: "Body Diagnosis", href: "/dashboard/diagnosis" },
   { icon: MessageCircle, label: "AI Chatbot", href: "/dashboard/chatbot" },

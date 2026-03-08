@@ -352,7 +352,7 @@ export default function ReportDetailsPage() {
           {report.extractedData.medications.map((med: any, i: number) => (
             <div key={i} className="p-4 rounded-lg border border-border">
               <h4 className="font-medium text-foreground mb-2">{med.name}</h4>
-              <div className="grid grid-cols-2 gap-4 text-sm">
+              <div className="grid grid-cols-2 gap-4 text-sm mb-3">
                 <div>
                   <span className="text-muted-foreground">Dosage:</span>
                   <span className="ml-2 text-foreground">{med.dosage}</span>
@@ -361,12 +361,15 @@ export default function ReportDetailsPage() {
                   <span className="text-muted-foreground">Frequency:</span>
                   <span className="ml-2 text-foreground">{med.frequency}</span>
                 </div>
-                <div>
+                <div className="col-span-2">
                   <span className="text-muted-foreground">Duration:</span>
                   <span className="ml-2 text-foreground">{med.duration}</span>
                 </div>
               </div>
-              <p className="text-xs text-muted-foreground mt-2">{med.instructions}</p>
+              <div className="p-3 rounded-lg bg-blue-50 border border-blue-200">
+                <p className="text-sm font-medium text-foreground mb-1">Instructions:</p>
+                <p className="text-sm text-muted-foreground">{med.instructions}</p>
+              </div>
             </div>
           ))}
         </div>

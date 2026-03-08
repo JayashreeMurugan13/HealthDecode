@@ -18,32 +18,7 @@ export function getVisionClient() {
 }
 
 export async function extractTextFromImage(imageBuffer: Buffer): Promise<string> {
-  try {
-    // Check if Google Cloud Vision is configured
-    if (process.env.GOOGLE_APPLICATION_CREDENTIALS && process.env.GOOGLE_CLOUD_PROJECT_ID) {
-      try {
-        const client = getVisionClient();
-        const [result] = await client.textDetection({
-          image: { content: imageBuffer },
-        });
-        const detections = result.textAnnotations;
-        const text = detections?.[0]?.description || '';
-        if (text && text.length > 20) {
-          return text;
-        }
-      } catch (visionError) {
-        console.error('Google Vision API error:', visionError);
-      }
-    }
-    
-    // Fallback to Tesseract.js
-    const Tesseract = await import('tesseract.js');
-    const worker = await Tesseract.createWorker('eng');
-    const { data: { text } } = await worker.recognize(imageBuffer);
-    await worker.terminate();
-    return text;
-  } catch (error) {
-    console.error('OCR error:', error);
-    throw new Error('Failed to extract text from image');
-  }
+  // For now, return a helpful message since Tesseract.js has issues in Next.js server
+  // In production, you should use Google Cloud Vision API with billing enabled
+  throw new Error('Image OCR requires Google Cloud Vision API to be configured with billing enabled. Please upload PDF files with text, or enable Google Cloud Vision API in your project settings.');
 }

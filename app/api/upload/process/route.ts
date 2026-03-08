@@ -253,7 +253,7 @@ function analyzeParameter(parameter: string, value: number): ExtractedParameter 
 
 export async function POST(request: NextRequest) {
   try {
-    const { fileData, fileType } = await request.json();
+    const { fileData, fileType, extractedText: preExtractedText } = await request.json();
     
     if (!fileData) {
       return NextResponse.json({ error: 'No file data provided' }, { status: 400 });
@@ -264,7 +264,12 @@ export async function POST(request: NextRequest) {
     
     let extractedText = '';
     
-    if (fileType === 'application/pdf' || fileData.startsWith('JVBER')) {
+    // If text was already extracted on client side (for images), use it
+    if (preExtractedText) {
+      // Decode the base64 encoded Unicode text
+      extractedText = decodeURIComponent(escape(atob(fileData)));
+      console.log('Using pre-extracted text from client, length:', extractedText.length);
+    } else if (fileType === 'application/pdf' || fileData.startsWith('JVBER')) {
       try {
         const pdfData = await pdf(dataBuffer);
         extractedText = pdfData.text;
@@ -298,23 +303,12 @@ export async function POST(request: NextRequest) {
         }, { status: 400 });
       }
     } else if (fileType && fileType.startsWith('image/')) {
-      try {
-        extractedText = await extractTextFromImage(dataBuffer);
-        console.log('Image OCR successful, length:', extractedText?.length || 0);
-        
-        if (!extractedText || extractedText.trim().length < 20) {
-          return NextResponse.json({ 
-            error: 'No text detected in image. Please ensure the image is clear and contains readable text.',
-            success: false
-          }, { status: 400 });
-        }
-      } catch (imgError) {
-        console.error('Image OCR error:', imgError);
-        return NextResponse.json({ 
-          error: 'Failed to extract text from image. Please ensure the image is clear and readable.',
-          success: false
-        }, { status: 400 });
-      }
+      // This shouldn't happen as images are processed on client side
+      // But keep as fallback
+      return NextResponse.json({ 
+        error: 'Image processing should be done on client side. Please refresh and try again.',
+        success: false
+      }, { status: 400 });
     } else {
       return NextResponse.json({ 
         error: 'Unsupported file format. Please upload PDF or image files.' 
@@ -355,6 +349,7 @@ export async function POST(request: NextRequest) {
           /hemoglobin[:\s]+(\d+\.?\d*)/gi,
         ];
         
+        const altResults: ExtractedParameter[] = [];
         for (const pattern of altPatterns) {
           const matches = extractedText.matchAll(pattern);
           for (const match of matches) {
@@ -362,23 +357,23 @@ export async function POST(request: NextRequest) {
             const value = parseFloat(match[1]);
             
             if (paramName.includes('cholesterol') && !paramName.includes('hdl') && !paramName.includes('ldl')) {
-              results.push(analyzeParameter('cholesterol', value));
+              altResults.push(analyzeParameter('cholesterol', value));
             } else if (paramName.includes('ldl')) {
-              results.push(analyzeParameter('ldl', value));
+              altResults.push(analyzeParameter('ldl', value));
             } else if (paramName.includes('hdl')) {
-              results.push(analyzeParameter('hdl', value));
+              altResults.push(analyzeParameter('hdl', value));
             } else if (paramName.includes('triglyceride')) {
-              results.push(analyzeParameter('triglycerides', value));
+              altResults.push(analyzeParameter('triglycerides', value));
             } else if (paramName.includes('glucose')) {
-              results.push(analyzeParameter('glucose', value));
+              altResults.push(analyzeParameter('glucose', value));
             } else if (paramName.includes('hemoglobin')) {
-              results.push(analyzeParameter('hemoglobin', value));
+              altResults.push(analyzeParameter('hemoglobin', value));
             }
           }
         }
         
         // Remove duplicates after alternative parsing
-        parameters = results.filter((r, i, arr) => 
+        parameters = altResults.filter((r, i, arr) => 
           arr.findIndex(t => t.parameter === r.parameter) === i
         );
         
@@ -399,16 +394,15 @@ export async function POST(request: NextRequest) {
           const Groq = (await import('groq-sdk')).default;
           const groq = new Groq({ apiKey: process.env.GROQ_API_KEY || '' });
           
-          const prompt = `You are a compassionate medical AI assistant helping patients understand their blood test results. Analyze these results and provide a personalized, empathetic summary in 3-4 sentences that:
-1. Acknowledges their specific abnormal values with exact numbers
-2. Explains what these values mean for their health in simple terms
-3. Provides actionable lifestyle advice (diet, exercise, habits)
-4. Encourages them to consult their doctor for proper treatment
+          const prompt = `You are a medical AI assistant helping patients understand blood test results. Analyze these results and provide a concise 2-3 sentence summary that:
+1. States which values are abnormal with exact numbers
+2. Explains health implications in simple terms
+3. Provides one key actionable recommendation
 
 Blood Test Results:
 ${parameters.map(p => `${p.parameter}: ${p.result} ${p.unit} (Normal: ${p.normalRange} ${p.unit}) - Status: ${p.status.toUpperCase()}`).join('\n')}
 
-Write in a warm, supportive tone as if speaking directly to the patient. Use "your" and "you" to make it personal.`;
+Be direct and professional. Avoid excessive reassurance.`;
 
           const completion = await groq.chat.completions.create({
             model: 'llama-3.3-70b-versatile',
@@ -443,41 +437,150 @@ Write in a warm, supportive tone as if speaking directly to the patient. Use "yo
       if (radiologyFindings.length === 0) {
         summary = 'Your radiology report has been processed. Please consult with your doctor for detailed interpretation of the imaging findings.';
       } else {
-        const abnormalFindings = radiologyFindings.filter(f => f.severity !== 'normal');
-        if (abnormalFindings.length === 0) {
-          summary = `Good news! Your imaging study shows no significant abnormalities. The radiologist found normal findings in the examined areas: ${radiologyFindings.map(f => f.anatomy).join(', ')}. Continue your regular health maintenance routine.`;
-        } else {
-          summary = `Your imaging study of ${radiologyFindings.map(f => f.anatomy).join(', ')} has been analyzed. `;
-          summary += `${abnormalFindings.length} area(s) show findings that need attention: `;
-          summary += abnormalFindings.map(f => `${f.anatomy} (${f.severity} - ${f.finding})`).join(', ');
-          summary += '. Please discuss these findings with your doctor to determine the next steps for your care.';
+        try {
+          const Groq = (await import('groq-sdk')).default;
+          const groq = new Groq({ apiKey: process.env.GROQ_API_KEY || '' });
+          
+          const prompt = `You are a medical AI assistant. Analyze this radiology report and provide a brief 2-3 sentence summary that:
+1. States what was examined and the key findings
+2. Explains significance in clear medical terms
+3. Recommends next steps if needed
+
+Radiology Findings:
+${radiologyFindings.map(f => `${f.anatomy}: ${f.finding} (${f.severity})`).join('\n')}
+
+Be concise and professional. Avoid overly emotional language.`;
+
+          const completion = await groq.chat.completions.create({
+            model: 'llama-3.3-70b-versatile',
+            messages: [{ role: 'user', content: prompt }],
+            temperature: 0.8,
+            max_tokens: 250,
+          });
+
+          summary = completion.choices[0].message.content || '';
+        } catch (error) {
+          const abnormalFindings = radiologyFindings.filter(f => f.severity !== 'normal');
+          if (abnormalFindings.length === 0) {
+            summary = `Good news! Your imaging study shows no significant abnormalities. The radiologist found normal findings in the examined areas: ${radiologyFindings.map(f => f.anatomy).join(', ')}. Continue your regular health maintenance routine.`;
+          } else {
+            summary = `Your imaging study of ${radiologyFindings.map(f => f.anatomy).join(', ')} has been analyzed. ${abnormalFindings.length} area(s) show findings that need attention. Please discuss these findings with your doctor to determine the next steps for your care.`;
+          }
         }
       }
     } else if (reportType === 'prescription') {
       medications = parsePrescription(extractedText);
-      summary = medications.length > 0 
-        ? `Your prescription includes ${medications.length} medication(s): ${medications.map(m => m.name).join(', ')}. Please take these medications exactly as prescribed by your doctor. Follow the dosage instructions carefully and complete the full course of treatment. If you experience any side effects, contact your healthcare provider immediately.` 
-        : 'Your prescription has been processed. Please follow your doctor\'s instructions carefully and take medications as directed.';
+      
+      if (medications.length > 0) {
+        try {
+          const Groq = (await import('groq-sdk')).default;
+          const groq = new Groq({ apiKey: process.env.GROQ_API_KEY || '' });
+          
+          const prompt = `You are a medical AI assistant. Analyze this prescription and provide a brief 2-3 sentence summary that:
+1. Lists the medications and their general purpose
+2. Key instructions for taking them
+3. When to contact doctor
+
+Prescribed Medications:
+${medications.map(m => `${m.name} - ${m.dosage}, ${m.frequency} for ${m.duration}`).join('\n')}
+
+Be concise and professional.`;
+
+          const completion = await groq.chat.completions.create({
+            model: 'llama-3.3-70b-versatile',
+            messages: [{ role: 'user', content: prompt }],
+            temperature: 0.8,
+            max_tokens: 250,
+          });
+
+          summary = completion.choices[0].message.content || '';
+        } catch (error) {
+          summary = `Your prescription includes ${medications.length} medication(s): ${medications.map(m => m.name).join(', ')}. Please take these medications exactly as prescribed by your doctor. Follow the dosage instructions carefully and complete the full course of treatment. If you experience any side effects, contact your healthcare provider immediately.`;
+        }
+      } else {
+        summary = 'Your prescription has been processed. Please follow your doctor\'s instructions carefully and take medications as directed.';
+      }
     } else if (reportType === 'clinical_history') {
       clinicalFindings = parseClinicalHistory(extractedText);
-      summary = generateClinicalSummary(clinicalFindings);
       abnormalCount = clinicalFindings.diagnosis.length;
       
-      // Enhance clinical summary with more personalization
-      if (clinicalFindings.diagnosis.length > 0) {
-        const mainDiagnosis = clinicalFindings.diagnosis[0];
-        summary += ` Your healthcare team has identified ${clinicalFindings.diagnosis.length} area(s) of concern, with ${mainDiagnosis} being the primary focus. `;
+      try {
+        const Groq = (await import('groq-sdk')).default;
+        const groq = new Groq({ apiKey: process.env.GROQ_API_KEY || '' });
+        
+        const prompt = `You are a medical AI assistant. Analyze this clinical report and provide a brief 2-3 sentence summary that:
+1. States the chief complaint and key vital signs
+2. Lists primary diagnosis/concerns
+3. Mentions critical risk factors
+
+Clinical Information:
+Chief Complaint: ${clinicalFindings.chiefComplaint || 'Not specified'}
+Vital Signs: ${JSON.stringify(clinicalFindings.vitalSigns)}
+Diagnosis: ${clinicalFindings.diagnosis.join(', ')}
+Risk Factors: ${clinicalFindings.riskFactors.join(', ')}
+
+Be concise and professional.`;
+
+        const completion = await groq.chat.completions.create({
+          model: 'llama-3.3-70b-versatile',
+          messages: [{ role: 'user', content: prompt }],
+          temperature: 0.8,
+          max_tokens: 250,
+        });
+
+        summary = completion.choices[0].message.content || generateClinicalSummary(clinicalFindings);
+      } catch (error) {
+        summary = generateClinicalSummary(clinicalFindings);
+      }
+      
+      // Keep clinical summary brief - details shown in Clinical Findings section
+      if (clinicalFindings.diagnosis.length > 0 && !summary) {
+        summary = `Your clinical report has been analyzed. Your healthcare team has identified ${clinicalFindings.diagnosis.length} area(s) requiring attention. `;
         
         if (clinicalFindings.riskFactors.length > 0) {
-          summary += `Managing your risk factors (${clinicalFindings.riskFactors.join(', ')}) will be important for your treatment plan. `;
+          summary += `Managing your risk factors will be important for your treatment plan. `;
         }
         
-        summary += 'Work closely with your doctor to address these health concerns and follow their recommended treatment plan.';
+        summary += 'Review the detailed findings below and work closely with your doctor to address these health concerns.';
       }
     } else {
       parameters = parseBloodTestResults(extractedText);
       abnormalCount = parameters.filter(p => p.status !== 'normal').length;
-      summary = 'Your report has been processed. The system could not automatically determine the report type. Please review the extracted information and consult with your healthcare provider for proper interpretation.';
+      
+      if (parameters.length > 0) {
+        const abnormalParams = parameters.filter(p => p.status !== 'normal');
+        if (abnormalParams.length === 0) {
+          summary = `Excellent news! Your test results show ${parameters.map(p => p.parameter).join(', ')} are all within normal ranges. Your health indicators look good. Continue maintaining a healthy lifestyle with regular exercise and a balanced diet.`;
+        } else {
+          try {
+            const Groq = (await import('groq-sdk')).default;
+            const groq = new Groq({ apiKey: process.env.GROQ_API_KEY || '' });
+            
+            const prompt = `You are a medical AI assistant helping patients understand blood test results. Analyze these results and provide a concise 2-3 sentence summary that:
+1. States which values are abnormal with exact numbers
+2. Explains health implications in simple terms
+3. Provides one key actionable recommendation
+
+Blood Test Results:
+${parameters.map(p => `${p.parameter}: ${p.result} ${p.unit} (Normal: ${p.normalRange} ${p.unit}) - Status: ${p.status.toUpperCase()}`).join('\n')}
+
+Be direct and professional. Avoid excessive reassurance.`;
+
+            const completion = await groq.chat.completions.create({
+              model: 'llama-3.3-70b-versatile',
+              messages: [{ role: 'user', content: prompt }],
+              temperature: 0.8,
+              max_tokens: 300,
+            });
+
+            summary = completion.choices[0].message.content || '';
+          } catch (error) {
+            summary = `Your test results show ${abnormalParams.length} parameter(s) outside normal range: ${abnormalParams.map(p => `${p.parameter} (${p.result} ${p.unit})`).join(', ')}. Please consult your doctor to discuss these results and create a treatment plan.`;
+          }
+        }
+      } else {
+        summary = 'Your report has been processed. The system could not automatically determine the report type. Please review the extracted information and consult with your healthcare provider for proper interpretation.';
+      }
     }
 
     return NextResponse.json({

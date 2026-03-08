@@ -113,22 +113,40 @@ export default function UploadPage() {
       setCurrentStep(1);
       setStatus("processing");
       
-      // Convert file to base64
-      const reader = new FileReader();
-      const fileData = await new Promise<string>((resolve) => {
-        reader.onload = () => {
-          const base64 = (reader.result as string).split(',')[1];
-          resolve(base64);
-        };
-        reader.readAsDataURL(files[0]);
-      });
+      let fileData: string;
+      let extractedText = '';
+      
+      // Check if it's an image file
+      const isImage = files[0].type.startsWith('image/');
+      
+      if (isImage) {
+        // Process image on client side using Tesseract.js
+        console.log('Processing image with client-side OCR...');
+        const { extractTextFromImageClient } = await import('@/lib/client-ocr');
+        extractedText = await extractTextFromImageClient(files[0]);
+        console.log('Client OCR completed, text length:', extractedText.length);
+        
+        // Convert extracted text to base64 using proper encoding for Unicode
+        fileData = btoa(unescape(encodeURIComponent(extractedText)));
+      } else {
+        // Convert PDF file to base64
+        const reader = new FileReader();
+        fileData = await new Promise<string>((resolve) => {
+          reader.onload = () => {
+            const base64 = (reader.result as string).split(',')[1];
+            resolve(base64);
+          };
+          reader.readAsDataURL(files[0]);
+        });
+      }
       
       const processRes = await fetch('/api/upload/process', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
           fileData,
-          fileType: uploadDataResult.files[0].fileType 
+          fileType: uploadDataResult.files[0].fileType,
+          extractedText: isImage ? extractedText : undefined
         }),
       });
       
@@ -513,7 +531,7 @@ export default function UploadPage() {
           </h3>
           <p className="text-muted-foreground">
             {currentStep === 0 && "Uploading your medical report..."}
-            {currentStep === 1 && "Extracting text using advanced OCR..."}
+            {currentStep === 1 && (files[0]?.type.startsWith('image/') ? "Extracting text from image using OCR (this may take 10-30 seconds)..." : "Extracting text using advanced OCR...")}
             {currentStep === 2 && "AI is analyzing your medical data..."}
           </p>
           
